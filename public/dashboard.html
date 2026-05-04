@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Guru - YPWI Absensi</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>">
+</head>
+<body>
+  <div class="container" style="max-width: 900px; margin: 2rem auto; padding: 0 1rem;">
+    <!-- Header -->
+    <div class="card" style="margin-bottom: 2rem;">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 style="font-size: 1.875rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">
+            <i class="fas fa-calendar-check" style="margin-right: 0.75rem; color: var(--primary-color);"></i>
+            Dashboard Guru
+          </h1>
+           <p style="font-size: 1rem; color: var(--text-secondary);" id="teacherName">Memuat data...</p>
+           <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.25rem;" id="teacherDetails">Memuat detail...</p>
+           <div style="margin-top: 0.75rem;">
+             <span class="badge badge-success" id="connectionStatus">
+               <i class="fas fa-circle" style="margin-right: 0.5rem; font-size: 0.5rem;"></i>
+               Sistem Online
+             </span>
+           </div>
+        </div>
+        <div class="flex space-x-2">
+          <button class="btn btn-secondary" onclick="logout()">
+            <i class="fas fa-sign-out-alt" style="margin-right: 0.5rem;"></i>
+            Keluar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attendance Card -->
+    <div class="card attendance-card">
+      <div id="attendanceSection">
+        <div style="margin-bottom: 2rem;">
+          <i class="fas fa-map-marker-alt" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+        </div>
+
+        <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem; color: var(--text-primary);">Sistem Absensi Lokasi</h2>
+
+        <!-- Location Status -->
+        <div id="locationInfo" class="location-info" style="margin-bottom: 2rem;">
+          <div style="display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-spinner spinner" style="margin-right: 0.5rem;"></i>
+            <span>Menginisialisasi GPS...</span>
+          </div>
+        </div>
+
+        <!-- Attendance Buttons -->
+        <div class="flex space-x-4" style="margin-bottom: 2rem;">
+          <button class="btn btn-success" id="checkInBtn" onclick="recordAttendance('masuk')" style="flex: 1; display: none;">
+            <i class="fas fa-sign-in-alt" style="margin-right: 0.5rem;"></i>
+            Absen Masuk
+          </button>
+          <button class="btn btn-danger" id="checkOutBtn" onclick="recordAttendance('pulang')" style="flex: 1; display: none;">
+            <i class="fas fa-sign-out-alt" style="margin-right: 0.5rem;"></i>
+            Absen Pulang
+          </button>
+        </div>
+
+        <!-- System Status -->
+        <div style="padding: 1.25rem; background: #f8fafc; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+          <div class="flex justify-between items-center" style="margin-bottom: 0.75rem;">
+            <span style="font-size: 0.875rem; color: var(--text-secondary);">Akurasi GPS</span>
+            <span id="gpsAccuracy" style="font-size: 0.875rem; font-weight: 600; color: var(--text-primary);">-- m</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span style="font-size: 0.875rem; color: var(--text-secondary);">Status Jaringan</span>
+            <span id="networkStatus" style="font-size: 0.875rem; font-weight: 600; color: var(--text-primary);">
+              <i class="fas fa-wifi" style="margin-right: 0.25rem;"></i>
+              Terhubung
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div id="attendanceResult" style="display: none;">
+        <div id="resultIcon" style="font-size: 3rem; margin-bottom: 1.5rem;"></div>
+        <div id="resultMessage" style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;"></div>
+        <div id="resultDetails" style="margin-bottom: 2rem; padding: 1rem; background: #f8fafc; border-radius: 0.5rem; border: 1px solid var(--border-color); font-size: 0.875rem;"></div>
+        <button class="btn btn-primary" onclick="resetAttendance()" style="width: 100%;">
+          <i class="fas fa-redo" style="margin-right: 0.5rem;"></i>
+          Lakukan Absensi Lagi
+        </button>
+      </div>
+    </div>
+
+    <!-- Today's Summary -->
+    <div class="card" style="margin-top: 2rem;">
+      <div class="card-header">
+        <h3 style="font-size: 1.125rem; font-weight: 600;">
+          <i class="fas fa-chart-bar" style="margin-right: 0.5rem; color: var(--primary-color);"></i>
+          Ringkasan Hari Ini
+        </h3>
+      </div>
+      <div class="space-y-4">
+        <div style="padding: 1.25rem; background: #f8fafc; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+          <div class="flex justify-between items-center">
+            <div>
+              <span style="font-size: 0.875rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Total Absensi</span>
+              <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);" id="totalAttendance">0</div>
+            </div>
+            <div style="width: 48px; height: 48px; background: var(--success-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+              <i class="fas fa-calendar-check" style="color: white; font-size: 1.25rem;"></i>
+            </div>
+          </div>
+        </div>
+        <div style="padding: 1.25rem; background: #f8fafc; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+          <div class="flex justify-between items-center">
+            <div>
+              <span style="font-size: 0.875rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Status Terakhir</span>
+              <div id="lastStatus" class="badge badge-warning" style="margin-top: 0.25rem;">Belum absen</div>
+            </div>
+            <div style="width: 48px; height: 48px; background: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+              <i class="fas fa-info-circle" style="color: white; font-size: 1.25rem;"></i>
+            </div>
+          </div>
+        </div>
+        <div style="padding: 1.25rem; background: #f8fafc; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+          <div class="flex justify-between items-center">
+            <div>
+              <span style="font-size: 0.875rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Aktivitas Terakhir</span>
+              <div style="font-size: 1rem; font-weight: 500; color: var(--text-primary);" id="lastTime">-</div>
+            </div>
+            <div style="width: 48px; height: 48px; background: var(--warning-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+              <i class="fas fa-clock" style="color: white; font-size: 1.25rem;"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Attendance History -->
+    <div class="card" style="margin-top: 2rem;">
+      <div class="card-header">
+        <h3 style="font-size: 1.125rem; font-weight: 600;">
+          <i class="fas fa-history" style="margin-right: 0.5rem; color: var(--primary-color);"></i>
+          Riwayat Absensi
+        </h3>
+      </div>
+      <div id="recentAttendance">
+        <div style="text-align: center; padding: 3rem;">
+          <div style="width: 64px; height: 64px; margin: 0 auto 1rem; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-spinner spinner"></i>
+          </div>
+          <p style="color: var(--text-secondary); font-weight: 500;">Memuat data riwayat...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Location Error Modal -->
+  <div id="locationModal" class="modal">
+    <div class="modal-content" style="max-width: 400px;">
+      <div style="padding: 2rem; text-align: center;">
+        <div style="width: 64px; height: 64px; margin: 0 auto 1.5rem; background: var(--error-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+          <i class="fas fa-map-marker-alt" style="font-size: 1.5rem; color: white;"></i>
+        </div>
+        <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-primary);">Izin Lokasi Diperlukan</h3>
+        <p style="margin-bottom: 1.5rem; color: var(--text-secondary); line-height: 1.6;">
+          Sistem absensi memerlukan akses lokasi untuk memverifikasi kehadiran Anda di area sekolah demi keamanan dan akurasi.
+        </p>
+        <div style="background: #f8fafc; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border: 1px solid var(--border-color);">
+          <div style="display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-shield-alt" style="margin-right: 0.5rem; color: var(--success-color);"></i>
+            <span style="font-size: 0.875rem; color: var(--text-secondary);">Data lokasi Anda dienkripsi dan aman</span>
+          </div>
+        </div>
+        <div class="flex space-x-3">
+          <button class="btn btn-secondary" onclick="closeLocationModal()" style="flex: 1;">Tutup</button>
+          <button class="btn btn-primary" onclick="requestLocationPermission()" style="flex: 1;">
+            <i class="fas fa-location-arrow" style="margin-right: 0.5rem;"></i>
+            Aktifkan GPS
+          </button>
+        </div>
+      </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div id="changePasswordModal" class="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 hidden">
+    <div class="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl scale-95 transition-all duration-300">
+      <h3 class="text-xl font-bold text-gray-950 mb-6 flex items-center gap-2">
+        <i class="bi bi-shield-lock text-primary"></i> Ganti Password
+      </h3>
+
+      <div class="space-y-4">
+        <div>
+          <label for="oldPassword" class="block text-sm font-semibold text-gray-700 mb-2">Password Lama</label>
+          <input type="password" id="oldPassword" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary outline-none font-medium" placeholder="Masukkan password lama">
+        </div>
+        <div>
+          <label for="newPassword" class="block text-sm font-semibold text-gray-700 mb-2">Password Baru</label>
+          <input type="password" id="newPassword" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary outline-none font-medium" placeholder="Minimal 6 karakter">
+        </div>
+        <div>
+          <label for="confirmPassword" class="block text-sm font-semibold text-gray-700 mb-2">Konfirmasi Password Baru</label>
+          <input type="password" id="confirmPassword" class="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary outline-none font-medium" placeholder="Ulangi password baru">
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3 mt-8">
+        <button type="button" onclick="closeChangePasswordModal()" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition">Nanti Saja</button>
+        <button type="button" onclick="changePassword()" class="px-5 py-2.5 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition flex items-center gap-1.5">
+          <i class="bi bi-check-circle"></i> Ganti Password
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('SW registered: ', registration);
+          })
+          .catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+
+    // Check for default password and show change password modal
+    if (data.user && data.user.is_default_password) {
+      setTimeout(() => {
+        document.getElementById('changePasswordModal').classList.remove('hidden');
+        document.getElementById('changePasswordModal').classList.add('flex');
+      }, 2000); // Show after 2 seconds
+    }
+
+    function closeChangePasswordModal() {
+      document.getElementById('changePasswordModal').classList.add('hidden');
+      document.getElementById('changePasswordModal').classList.remove('flex');
+      // Clear fields
+      document.getElementById('oldPassword').value = '';
+      document.getElementById('newPassword').value = '';
+      document.getElementById('confirmPassword').value = '';
+    }
+
+    async function changePassword() {
+      const oldPassword = document.getElementById('oldPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+
+      if (!oldPassword || !newPassword || !confirmPassword) {
+        Swal.fire('Error', 'Semua field harus diisi', 'error');
+        return;
+      }
+
+      if (newPassword !== confirmPassword) {
+        Swal.fire('Error', 'Password baru dan konfirmasi tidak cocok', 'error');
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        Swal.fire('Error', 'Password baru minimal 6 karakter', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/change-password', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            old_password: oldPassword,
+            new_password: newPassword,
+            confirm_password: confirmPassword
+          })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          Swal.fire('Berhasil', 'Password berhasil diubah', 'success');
+          closeChangePasswordModal();
+        } else {
+          Swal.fire('Error', result.message, 'error');
+        }
+      } catch (error) {
+        console.error('Change password error:', error);
+        Swal.fire('Error', 'Terjadi kesalahan', 'error');
+      }
+    }
+  </script>
+</body>
+</html>

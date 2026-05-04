@@ -1,0 +1,2075 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin - YPWI Absensi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .nav-active { background-color: #3b82f6; color: white; }
+    .modal { display: none; }
+    .modal.show { display: flex; }
+    .chart-placeholder { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-lg border-r">
+      <div class="p-6 border-b">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+            <i class="fas fa-chart-line text-white"></i>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold text-gray-900">YPWI Admin</h1>
+            <p class="text-sm text-gray-500">Dashboard Panel</p>
+          </div>
+        </div>
+      </div>
+
+      <nav class="p-4 space-y-2">
+        <button class="nav-item nav-active w-full text-left flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100" data-tab="dashboard">
+          <i class="fas fa-chart-line"></i>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item w-full text-left flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100" data-tab="teachers">
+          <i class="fas fa-users"></i>
+          <span>Manajemen Guru</span>
+        </button>
+        <button class="nav-item w-full text-left flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100" data-tab="rules">
+          <i class="fas fa-clock"></i>
+          <span>Aturan Waktu</span>
+        </button>
+        <button class="nav-item w-full text-left flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100" data-tab="attendance">
+          <i class="fas fa-clipboard-list"></i>
+          <span>Log Kehadiran</span>
+        </button>
+        <button class="nav-item w-full text-left flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100" data-tab="payroll">
+          <i class="fas fa-wallet"></i>
+          <span>Penggajian</span>
+        </button>
+        <button class="nav-item w-full text-left flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100" data-tab="documents">
+          <i class="fas fa-file-alt"></i>
+          <span>Dokumen HR</span>
+        </button>
+        <button class="nav-item w-full text-left flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100" data-tab="settings">
+          <i class="fas fa-cog"></i>
+          <span>Pengaturan</span>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-8">
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-8">
+        <div>
+          <h2 id="pageTitle" class="text-3xl font-bold text-gray-900">Dashboard</h2>
+          <p class="text-gray-600 mt-1">Selamat datang kembali, <span id="adminName">Admin</span></p>
+        </div>
+        <div class="flex items-center space-x-4">
+          <span class="text-sm text-gray-500" id="currentDate"></span>
+          <div class="flex items-center space-x-2">
+            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+              <i class="fas fa-user text-white text-sm"></i>
+            </div>
+            <span class="text-sm font-medium" id="adminRole">Administrator</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard Tab -->
+      <div id="dashboardTab" class="tab-content">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Total Guru</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2" id="totalTeachers">0</p>
+              </div>
+              <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-users text-blue-600"></i>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Hadir Hari Ini</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2" id="todayAttendance">0</p>
+              </div>
+              <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-check-circle text-green-600"></i>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Terlambat</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2" id="lateCount">0</p>
+              </div>
+              <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-clock text-red-600"></i>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm font-medium text-gray-500 uppercase tracking-wide">Status Scanner</p>
+                <p class="text-lg font-semibold text-green-600 mt-2" id="scannerStatus">Online</p>
+              </div>
+              <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <i class="fas fa-wifi text-green-600"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">Statistik Kehadiran Minggu Ini</h3>
+          <div class="chart-placeholder h-64">
+            Chart.js Placeholder - Grafik akan dimuat di sini
+          </div>
+        </div>
+      </div>
+
+      <!-- Teachers Tab -->
+      <div id="teachersTab" class="tab-content hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-semibold text-gray-900">Manajemen Data Guru</h3>
+            <div class="flex space-x-2">
+              <button onclick="createUsersForSelected()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                <i class="fas fa-user-plus mr-2"></i>Buat User
+              </button>
+              <button onclick="deleteSelectedTeachers()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+                <i class="fas fa-trash mr-2"></i>Hapus Terpilih
+              </button>
+              <button onclick="showAddTeacherModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                <i class="fas fa-plus mr-2"></i>Tambah Guru
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b border-gray-100">
+                <tr>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                  </th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nama</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">NIK</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">NIP</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Jabatan</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="teachersTable" class="divide-y divide-gray-100">
+                <tr>
+                  <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
+                    <p>Memuat data...</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rules Tab -->
+      <div id="rulesTab" class="tab-content hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-semibold text-gray-900">Aturan Waktu Absensi</h3>
+            <button onclick="showAddRuleModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+              <i class="fas fa-plus mr-2"></i>Tambah Aturan
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b border-gray-100">
+                <tr>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tenant</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tipe</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Jam Mulai</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Jam Selesai</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status Log</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Keterangan</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="rulesTable" class="divide-y divide-gray-100">
+                <tr>
+                  <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
+                    <p>Memuat data...</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Attendance Tab -->
+      <div id="attendanceTab" class="tab-content hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h3 class="text-lg font-semibold text-gray-900">Log Kehadiran</h3>
+            <div class="flex space-x-2">
+              <input type="date" id="attendanceDateFilter" class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <select id="attendanceStatusFilter" class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <option value="">Semua Status</option>
+                <option value="tepat_waktu">Tepat Waktu</option>
+                <option value="terlambat">Terlambat</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="bg-gray-50 border-b border-gray-100">
+                <tr>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nama Guru</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">NIP</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Jenis</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Waktu</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Metode</th>
+                </tr>
+              </thead>
+              <tbody id="attendanceTable" class="divide-y divide-gray-100">
+                <tr>
+                  <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
+                    <p>Memuat data...</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payroll Tab -->
+      <div id="payrollTab" class="tab-content hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-6">Sistem Penggajian</h3>
+          <div class="text-center py-12 text-gray-500">
+            <i class="fas fa-wallet text-4xl mb-4"></i>
+            <p>Fitur penggajian akan diimplementasikan</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Documents Tab -->
+      <div id="documentsTab" class="tab-content hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-6">Dokumen HR</h3>
+          <div class="text-center py-12 text-gray-500">
+            <i class="fas fa-file-alt text-4xl mb-4"></i>
+            <p>Manajemen dokumen HR akan diimplementasikan</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Tab -->
+      <div id="settingsTab" class="tab-content hidden">
+        <div class="space-y-6">
+          <!-- Settings Header -->
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-2xl font-bold text-gray-900">Pengaturan Sistem</h3>
+                <p class="text-gray-600 mt-1">Kelola konfigurasi aplikasi dan lokasi sekolah</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <span class="text-sm text-gray-600">Sistem Aktif</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Settings Navigation -->
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div class="border-b border-gray-200">
+              <nav class="flex space-x-8 px-6" id="settingsNav">
+                <button class="settings-nav-item active py-4 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600" data-setting="locations">
+                  <i class="fas fa-map-marker-alt mr-2"></i>
+                  Lokasi Sekolah
+                </button>
+                <button class="settings-nav-item py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-setting="attendance">
+                  <i class="fas fa-clock mr-2"></i>
+                  Aturan Absensi
+                </button>
+                <button class="settings-nav-item py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-setting="system">
+                  <i class="fas fa-cog mr-2"></i>
+                  Sistem
+                </button>
+                <button class="settings-nav-item py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-setting="security">
+                  <i class="fas fa-shield-alt mr-2"></i>
+                  Keamanan
+                </button>
+              </nav>
+            </div>
+
+            <!-- Locations Settings -->
+            <div id="locationsSetting" class="setting-content p-6">
+              <div class="flex items-center justify-between mb-6">
+                <div>
+                  <h4 class="text-lg font-semibold text-gray-900">Pengaturan Lokasi Sekolah</h4>
+                  <p class="text-gray-600 text-sm">Konfigurasi koordinat GPS untuk validasi absensi</p>
+                </div>
+                <button onclick="refreshTenantLocations()" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  <i class="fas fa-sync-alt mr-2"></i>
+                  Refresh
+                </button>
+              </div>
+
+              <!-- Quick Stats -->
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white">
+                  <div class="flex items-center">
+                    <div class="p-2 bg-white bg-opacity-20 rounded-lg">
+                      <i class="fas fa-school text-xl"></i>
+                    </div>
+                    <div class="ml-3">
+                      <p class="text-blue-100 text-sm">Total Sekolah</p>
+                      <p class="text-2xl font-bold" id="totalSchools">0</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
+                  <div class="flex items-center">
+                    <div class="p-2 bg-white bg-opacity-20 rounded-lg">
+                      <i class="fas fa-map-marked-alt text-xl"></i>
+                    </div>
+                    <div class="ml-3">
+                      <p class="text-green-100 text-sm">Lokasi Dikonfigurasi</p>
+                      <p class="text-2xl font-bold" id="configuredLocations">0</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white">
+                  <div class="flex items-center">
+                    <div class="p-2 bg-white bg-opacity-20 rounded-lg">
+                      <i class="fas fa-crosshairs text-xl"></i>
+                    </div>
+                    <div class="ml-3">
+                      <p class="text-purple-100 text-sm">Radius Default</p>
+                      <p class="text-2xl font-bold">100m</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Location Cards -->
+              <div id="tenantLocations" class="space-y-4">
+                <div class="text-center py-12">
+                  <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+                  <p class="text-gray-600">Memuat data lokasi sekolah...</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Attendance Rules Settings -->
+            <div id="attendanceSetting" class="setting-content hidden p-6">
+              <div class="flex items-center justify-between mb-6">
+                <div>
+                  <h4 class="text-lg font-semibold text-gray-900">Aturan Absensi</h4>
+                  <p class="text-gray-600 text-sm">Kelola jadwal masuk dan pulang</p>
+                </div>
+                <button onclick="showAddRuleModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  <i class="fas fa-plus mr-2"></i>
+                  Tambah Aturan
+                </button>
+              </div>
+
+              <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                <div class="flex items-start space-x-3">
+                  <i class="fas fa-info-circle text-blue-500 mt-0.5"></i>
+                  <div>
+                    <h5 class="font-medium text-gray-900">Informasi Aturan</h5>
+                    <p class="text-sm text-gray-600 mt-1">
+                      Aturan absensi berlaku berdasarkan prioritas: Aturan sekolah spesifik → Aturan default sistem.
+                      Pastikan tidak ada konflik jadwal antar aturan.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div id="attendanceRules" class="space-y-4">
+                <div class="text-center py-12">
+                  <i class="fas fa-clock text-4xl text-gray-400 mb-4"></i>
+                  <p class="text-gray-600">Memuat aturan absensi...</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- System Settings -->
+            <div id="systemSetting" class="setting-content hidden p-6">
+              <h4 class="text-lg font-semibold text-gray-900 mb-6">Pengaturan Sistem</h4>
+
+              <div class="space-y-6">
+                <div class="bg-white border border-gray-200 rounded-lg p-6">
+                  <h5 class="font-medium text-gray-900 mb-4">Konfigurasi Database</h5>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Status Koneksi</label>
+                      <div class="flex items-center">
+                        <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                        <span class="text-sm text-gray-600">Terhubung</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Versi Database</label>
+                      <span class="text-sm text-gray-600">MySQL 8.0</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-lg p-6">
+                  <h5 class="font-medium text-gray-900 mb-4">Konfigurasi Server</h5>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Status Server</label>
+                      <div class="flex items-center">
+                        <div class="w-3 h-3 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                        <span class="text-sm text-gray-600">Running</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-2">Port</label>
+                      <span class="text-sm text-gray-600">3000</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Security Settings -->
+            <div id="securitySetting" class="setting-content hidden p-6">
+              <h4 class="text-lg font-semibold text-gray-900 mb-6">Pengaturan Keamanan</h4>
+
+              <div class="space-y-6">
+                <div class="bg-white border border-gray-200 rounded-lg p-6">
+                  <h5 class="font-medium text-gray-900 mb-4">Autentikasi</h5>
+                  <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <p class="font-medium text-gray-900">JWT Token Expiry</p>
+                        <p class="text-sm text-gray-600">Waktu kadaluarsa token login</p>
+                      </div>
+                      <span class="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-full">8 Jam</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <p class="font-medium text-gray-900">Session Timeout</p>
+                        <p class="text-sm text-gray-600">Waktu timeout sesi tidak aktif</p>
+                      </div>
+                      <span class="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full">30 Menit</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bg-white border border-gray-200 rounded-lg p-6">
+                  <h5 class="font-medium text-gray-900 mb-4">Enkripsi Data</h5>
+                  <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <p class="font-medium text-gray-900">Password Hashing</p>
+                        <p class="text-sm text-gray-600">Algoritma enkripsi password</p>
+                      </div>
+                      <span class="px-3 py-1 text-sm bg-purple-100 text-purple-800 rounded-full">bcrypt</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <p class="font-medium text-gray-900">GPS Data Privacy</p>
+                        <p class="text-sm text-gray-600">Enkripsi data koordinat lokasi</p>
+                      </div>
+                      <span class="px-3 py-1 text-sm bg-green-100 text-green-800 rounded-full">Encrypted</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Teacher Modal -->
+  <div id="teacherModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 justify-center items-center">
+    <div class="bg-white rounded-lg max-w-md w-full mx-4">
+      <div class="p-6">
+        <h3 class="text-lg font-semibold mb-4" id="teacherModalTitle">Tambah Guru</h3>
+        <form id="teacherForm">
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Nama</label>
+            <input type="text" name="nama" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">NIK</label>
+            <input type="text" name="nik" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">NIP</label>
+            <input type="text" name="nip" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Jabatan</label>
+            <input type="text" name="sebagai" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input type="email" name="email" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div class="flex justify-end space-x-3">
+            <button type="button" onclick="hideTeacherModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">Batal</button>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rule Modal -->
+  <div id="ruleModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 justify-center items-center">
+    <div class="bg-white rounded-lg max-w-md w-full mx-4">
+      <div class="p-6">
+        <h3 class="text-lg font-semibold mb-4" id="ruleModalTitle">Tambah Aturan</h3>
+        <form id="ruleForm">
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tenant ID</label>
+            <input type="text" name="tenant_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tipe</label>
+            <select name="tipe" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+              <option value="Datang">Datang</option>
+              <option value="Pulang">Pulang</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Jam Mulai</label>
+            <input type="time" name="jam_mulai" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Jam Selesai</label>
+            <input type="time" name="jam_selesai" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
+            <input type="text" name="keterangan" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Status Log</label>
+            <select name="status_log" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+              <option value="tepat_waktu">Tepat Waktu</option>
+              <option value="terlambat">Terlambat</option>
+            </select>
+          </div>
+          <div class="flex justify-end space-x-3">
+            <button type="button" onclick="hideRuleModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">Batal</button>
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Location Modal -->
+  <div id="locationModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div style="padding: 2rem;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+          <div style="width: 64px; height: 64px; margin: 0 auto; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+            <i class="fas fa-map-marker-alt" style="font-size: 1.5rem; color: white;"></i>
+          </div>
+          <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary);">Konfigurasi Lokasi Sekolah</h3>
+          <p style="color: var(--text-secondary); margin-top: 0.5rem;">Atur koordinat GPS untuk validasi absensi</p>
+        </div>
+
+        <form id="locationForm">
+          <input type="hidden" name="tenant_id" id="locationTenantId">
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Sekolah</label>
+            <input type="text" name="nama_sekolah" id="locationNamaSekolah" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50" readonly>
+          </div>
+
+          <!-- Location Input Methods -->
+          <div class="mb-6 space-y-4">
+            <!-- Auto Detect Section -->
+            <div class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+              <div class="flex items-center justify-between mb-3">
+                <h4 class="font-medium text-blue-900">Auto Detect Lokasi</h4>
+                <button type="button" id="autoDetectModalBtn" class="inline-flex items-center px-3 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                  <i class="fas fa-crosshairs mr-2"></i>
+                  Detect Location
+                </button>
+              </div>
+              <div id="locationStatus" class="text-sm text-blue-700">
+                <i class="fas fa-info-circle mr-1"></i>
+                Klik tombol di atas untuk mendapatkan koordinat GPS saat ini
+              </div>
+            </div>
+
+            <!-- Map Picker Section -->
+            <div class="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+              <div class="flex items-center justify-between mb-3">
+                <h4 class="font-medium text-green-900">Pilih dari Peta</h4>
+                <button type="button" onclick="toggleMap()" class="inline-flex items-center px-3 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
+                  <i class="fas fa-map-marked-alt mr-2"></i>
+                  <span id="mapToggleText">Buka Peta</span>
+                </button>
+              </div>
+              <div class="text-sm text-green-700">
+                <i class="fas fa-mouse-pointer mr-1"></i>
+                Klik pada peta untuk memilih lokasi secara manual
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                <i class="fas fa-globe-asia mr-1"></i>
+                Latitude
+              </label>
+              <input type="number" step="0.000001" name="latitude" id="latitudeInput" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+              <p class="text-xs text-gray-500 mt-1">Contoh: -6.208763</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                <i class="fas fa-globe-asia mr-1"></i>
+                Longitude
+              </label>
+              <input type="number" step="0.000001" name="longitude" id="longitudeInput" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+              <p class="text-xs text-gray-500 mt-1">Contoh: 106.845599</p>
+            </div>
+          </div>
+
+          <!-- Manual Coordinate Help -->
+          <div class="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+            <h6 class="text-sm font-medium text-blue-900 mb-3 flex items-center">
+              <i class="fas fa-lightbulb mr-2"></i>
+              Panduan Mendapatkan Koordinat
+            </h6>
+            <div class="space-y-2 text-sm text-blue-800">
+              <div class="flex items-start">
+                <span class="inline-block w-6 h-6 bg-blue-200 text-blue-900 rounded-full text-xs font-bold flex items-center justify-center mr-3 mt-0.5">1</span>
+                <div>
+                  <strong>Google Maps:</strong> Klik kanan lokasi sekolah → pilih "What's here?" → salin koordinat yang muncul
+                </div>
+              </div>
+              <div class="flex items-start">
+                <span class="inline-block w-6 h-6 bg-blue-200 text-blue-900 rounded-full text-xs font-bold flex items-center justify-center mr-3 mt-0.5">2</span>
+                <div>
+                  <strong>Peta Interaktif:</strong> Klik pada peta di atas untuk memilih lokasi langsung
+                </div>
+              </div>
+              <div class="flex items-start">
+                <span class="inline-block w-6 h-6 bg-blue-200 text-blue-900 rounded-full text-xs font-bold flex items-center justify-center mr-3 mt-0.5">3</span>
+                <div>
+                  <strong>GPS Device:</strong> Gunakan aplikasi GPS atau kompas untuk mendapatkan koordinat akurat
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-ruler-combined mr-1"></i>
+              Radius Lokasi (meter)
+            </label>
+            <input type="number" name="location_radius" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" min="10" max="1000" required>
+            <p class="text-xs text-gray-500 mt-1">Jarak maksimal dari lokasi sekolah untuk absensi valid</p>
+          </div>
+
+          <div class="mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-tag mr-1"></i>
+              Nama Lokasi
+            </label>
+            <input type="text" name="location_name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Contoh: Sekolah Dasar XYZ, Jakarta">
+            <p class="text-xs text-gray-500 mt-1">Opsional: Berikan nama deskriptif untuk lokasi</p>
+          </div>
+
+          <!-- Map Container -->
+          <div id="mapContainer" class="mb-6 hidden">
+            <div class="mb-4 flex items-center justify-between">
+              <div>
+                <h5 class="font-semibold text-gray-900 flex items-center">
+                  <i class="fas fa-map-marked-alt mr-2 text-green-600"></i>
+                  Peta Lokasi Interaktif
+                </h5>
+                <p class="text-sm text-gray-600 mt-1">Klik pada peta untuk memilih koordinat</p>
+              </div>
+              <div class="flex space-x-2">
+                <button type="button" onclick="centerMapOnCurrent()" class="inline-flex items-center px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+                  <i class="fas fa-crosshairs mr-1"></i>
+                  Center
+                </button>
+                <button type="button" onclick="clearMapMarker()" class="inline-flex items-center px-3 py-2 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors">
+                  <i class="fas fa-trash mr-1"></i>
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div id="locationMap" style="height: 320px; border-radius: 0.75rem; border: 2px solid var(--border-color); box-shadow: var(--shadow);"></div>
+            <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div class="flex items-start">
+                <i class="fas fa-info-circle text-yellow-600 mt-0.5 mr-2"></i>
+                <div class="text-sm text-yellow-800">
+                  <strong>Tips:</strong> Klik di mana saja pada peta untuk menempatkan marker. Marker merah dapat digeser untuk penyesuaian presisi.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coordinate Display -->
+          <div class="mb-6 p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg border border-gray-200">
+            <div class="flex items-center justify-between mb-3">
+              <h5 class="font-semibold text-gray-900 flex items-center">
+                <i class="fas fa-map-pin mr-2 text-blue-600"></i>
+                Koordinat Lokasi
+              </h5>
+              <button type="button" onclick="copyCoordinates()" class="inline-flex items-center px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors" title="Salin koordinat">
+                <i class="fas fa-copy mr-1"></i>
+                Copy
+              </button>
+            </div>
+            <div id="coordinatePreview" class="text-sm font-mono bg-white px-4 py-3 rounded-md border border-gray-300 cursor-pointer hover:border-blue-400 transition-colors" onclick="copyCoordinates()">
+              <span class="text-gray-500">Belum ada koordinat dipilih</span>
+            </div>
+            <div class="mt-2 flex items-center justify-between text-xs text-gray-600">
+              <span>Format: Latitude, Longitude (Decimal Degrees)</span>
+              <span id="coordinateAccuracy" class="text-green-600 hidden">
+                <i class="fas fa-check-circle mr-1"></i>
+                Akurat
+              </span>
+            </div>
+          </div>
+            <div id="locationMap" style="height: 300px; border-radius: 0.5rem; border: 1px solid var(--border-color);"></div>
+            <p class="text-xs text-gray-500 mt-2">
+              <i class="fas fa-info-circle mr-1"></i>
+              Klik pada peta untuk memilih lokasi. Marker merah menunjukkan posisi saat ini.
+            </p>
+          </div>
+
+          <!-- Coordinate Preview -->
+          <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center">
+                <i class="fas fa-globe-asia text-2xl text-gray-400 mr-3"></i>
+                <div>
+                  <p class="text-sm font-medium text-gray-900">Koordinat Terpilih</p>
+                  <p class="text-xs text-gray-600">Klik untuk copy ke clipboard</p>
+                </div>
+              </div>
+              <button type="button" onclick="copyCoordinates()" class="text-gray-400 hover:text-gray-600 transition-colors" title="Copy coordinates">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+            <div id="coordinatePreview" class="text-sm font-mono text-gray-700 bg-white px-3 py-2 rounded border cursor-pointer hover:bg-gray-50 transition-colors" onclick="copyCoordinates()">
+              Belum ada koordinat dipilih
+            </div>
+            <div id="addressPreview" class="text-xs text-gray-500 mt-2 italic">
+              Klik koordinat untuk melihat alamat perkiraan
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex space-x-3 pt-4 border-t border-gray-200">
+            <button type="button" onclick="hideLocationModal()" class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200">
+              <i class="fas fa-times mr-2"></i>
+              Batal
+            </button>
+            <button type="submit" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-lg text-sm font-medium text-white hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105">
+              <i class="fas fa-save mr-2"></i>
+              Simpan Lokasi
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+          
+  <script type="module">
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!token || user.role !== 'admin') { window.location.replace('login.html'); }
+
+    let currentTeacherId = null;
+    let currentRuleId = null;
+
+    const setEl = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+
+    // ===== ALL FUNCTIONS DEFINED FIRST =====
+
+    // Make functions globally available for onclick attributes
+    window.showAddTeacherModal = showAddTeacherModal;
+    window.showAddRuleModal = showAddRuleModal;
+    window.refreshTenantLocations = refreshTenantLocations;
+    window.hideTeacherModal = hideTeacherModal;
+    window.hideRuleModal = hideRuleModal;
+    window.hideLocationModal = hideLocationModal;
+    window.editTeacher = editTeacher;
+    window.deleteTeacher = deleteTeacher;
+    window.toggleSelectAll = toggleSelectAll;
+    window.updateSelectAll = updateSelectAll;
+    window.deleteSelectedTeachers = deleteSelectedTeachers;
+    window.createUsersForSelected = createUsersForSelected;
+    window.createUser = createUser;
+    window.editRule = editRule;
+    window.deleteRule = deleteRule;
+    window.showSettingsTab = showSettingsTab;
+    window.autoDetectLocation = autoDetectLocation;
+    window.editTenantLocation = editTenantLocation;
+    window.autoDetectLocationModal = autoDetectLocationModal;
+
+    async function fetchDashboardData() {
+      try {
+        const response = await fetch('/api/admin/summary', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          localStorage.clear();
+          window.location.replace('login.html');
+          return;
+        }
+
+        const res = await response.json();
+
+        if (res.success) {
+          const d = res.data;
+          setEl('totalTeachers', d.totalTeachers || 0);
+          setEl('todayAttendance', d.activeToday || 0);
+          setEl('lateCount', d.lateToday || 0);
+          setEl('scannerStatus', 'Online');
+        }
+      } catch (error) {
+        console.error('Dashboard fetch error:', error);
+      }
+    }
+
+    async function fetchTeachers() {
+      try {
+        const response = await fetch('/api/admin/teachers', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          localStorage.clear();
+          window.location.replace('login.html');
+          return;
+        }
+
+        const res = await response.json();
+
+        if (res.success) {
+          console.log('Teachers data received:', res.data);
+          const items = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
+          console.log('Teachers items count:', items.length);
+          const tbody = document.getElementById('teachersTable');
+          console.log('Teachers tbody found:', !!tbody);
+          tbody.innerHTML = items.map(t => `
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4">
+                <input type="checkbox" class="teacher-checkbox" value="${t.id}" onchange="updateSelectAll()">
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-900">${t.nama || '-'}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">${t.nik || '-'}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">${t.nip || '-'}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">${t.sebagai || '-'}</td>
+              <td class="px-6 py-4 text-sm">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${t.status_aktif ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                  ${t.status_aktif ? 'Aktif' : 'Nonaktif'}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-sm space-x-2">
+                <button onclick="createUser(${t.id})" class="inline-flex items-center p-1.5 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-md transition-colors duration-150" title="Buat User">
+                  <i class="fas fa-user-plus text-sm"></i>
+                </button>
+                <button onclick="editTeacher(${t.id})" class="inline-flex items-center p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors duration-150" title="Edit">
+                  <i class="fas fa-edit text-sm"></i>
+                </button>
+                <button onclick="deleteTeacher(${t.id})" class="inline-flex items-center p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors duration-150" title="Hapus">
+                  <i class="fas fa-trash text-sm"></i>
+                </button>
+              </td>
+            </tr>
+          `).join('');
+          console.log('Teachers table updated with', items.length, 'rows');
+        }
+      } catch (error) {
+        console.error('Teachers fetch error:', error);
+      }
+    }
+
+    async function fetchRules() {
+      try {
+        const response = await fetch('/api/admin/rules', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          localStorage.clear();
+          window.location.replace('login.html');
+          return;
+        }
+
+        const res = await response.json();
+
+        if (res.success) {
+          console.log('Rules data received:', res.data);
+          const items = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
+          console.log('Rules items count:', items.length);
+          const tbody = document.getElementById('rulesTable');
+          console.log('Rules tbody found:', !!tbody);
+          tbody.innerHTML = items.map(rule => `
+            <tr class="border-b hover:bg-gray-50">
+              <td class="px-6 py-4">${rule.tenant_id}</td>
+              <td class="px-6 py-4">${rule.tipe}</td>
+              <td class="px-6 py-4">${rule.jam_mulai}</td>
+              <td class="px-6 py-4">${rule.jam_selesai}</td>
+              <td class="px-6 py-4">${rule.status_log}</td>
+              <td class="px-6 py-4">${rule.keterangan || '-'}</td>
+              <td class="px-6 py-4 space-x-2">
+                <button onclick="editRule(${rule.id})" class="text-blue-600 hover:text-blue-800">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button onclick="deleteRule(${rule.id})" class="text-red-600 hover:text-red-800">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          `).join('');
+          console.log('Rules table updated with', items.length, 'rows');
+        }
+      } catch (error) {
+        console.error('Rules fetch error:', error);
+      }
+    }
+
+    async function fetchAttendanceLogs() {
+      try {
+        const response = await fetch('/api/admin/attendance-logs', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          localStorage.clear();
+          window.location.replace('login.html');
+          return;
+        }
+
+        const res = await response.json();
+
+        if (res.success) {
+          const items = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
+          const tbody = document.getElementById('attendanceTable');
+          tbody.innerHTML = items.map(a => `
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 text-sm text-gray-900">${a.nama_guru || '-'}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">${a.nip || '-'}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">${a.jenis}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">${new Date(a.waktu_scan).toLocaleString('id-ID')}</td>
+              <td class="px-6 py-4 text-sm">
+                <span class="px-2 py-1 rounded-full text-xs ${a.status === 'tepat_waktu' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                  ${a.status === 'tepat_waktu' ? 'Tepat Waktu' : 'Terlambat'}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-500">${a.metode}</td>
+            </tr>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Attendance logs fetch error:', error);
+      }
+    }
+
+    async function fetchTenantLocations() {
+      try {
+        const response = await fetch('/api/admin/tenants', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          localStorage.clear();
+          window.location.replace('login.html');
+          return;
+        }
+
+        const res = await response.json();
+
+        if (res.success) {
+          const items = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
+          const container = document.getElementById('tenantLocations');
+
+          if (items.length === 0) {
+            container.innerHTML = '<p class="text-gray-500">Tidak ada data tenant</p>';
+            return;
+          }
+
+          // Update stats
+          document.getElementById('totalSchools').textContent = items.length;
+          document.getElementById('configuredLocations').textContent = items.filter(t => t.latitude && t.longitude).length;
+
+          container.innerHTML = items.map(tenant => `
+            <div class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow duration-200">
+              <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                  <h5 class="text-lg font-semibold text-gray-900 mb-1">${tenant.nama_sekolah}</h5>
+                  <p class="text-sm text-gray-600">ID: ${tenant.tenant_id}</p>
+                </div>
+                <div class="flex space-x-2">
+                  ${tenant.latitude && tenant.longitude ?
+                    '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check-circle mr-1"></i>Configured</span>' :
+                    '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"><i class="fas fa-exclamation-triangle mr-1"></i>Not Set</span>'
+                  }
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 mb-1">Latitude</label>
+                  <div class="text-sm font-mono text-gray-900 bg-gray-50 px-3 py-2 rounded border">
+                    ${tenant.latitude ? parseFloat(tenant.latitude).toFixed(6) : 'Belum diatur'}
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 mb-1">Longitude</label>
+                  <div class="text-sm font-mono text-gray-900 bg-gray-50 px-3 py-2 rounded border">
+                    ${tenant.longitude ? parseFloat(tenant.longitude).toFixed(6) : 'Belum diatur'}
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 mb-1">Radius</label>
+                  <div class="text-sm font-mono text-gray-900 bg-gray-50 px-3 py-2 rounded border">
+                    ${tenant.location_radius || 100}m
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                  <div class="text-sm text-gray-900">
+                    ${tenant.latitude && tenant.longitude ? 'Aktif' : 'Tidak Aktif'}
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+                <div class="text-sm text-gray-600">
+                  ${tenant.location_name ? `📍 ${tenant.location_name}` : 'Nama lokasi belum diatur'}
+                </div>
+                <div class="flex space-x-2">
+                  <button data-action="auto-detect" data-tenant-id="${tenant.tenant_id}" class="inline-flex items-center px-3 py-2 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                    <i class="fas fa-crosshairs mr-2"></i>
+                    Auto Detect
+                  </button>
+                  <button data-action="edit-location" data-tenant-id="${tenant.tenant_id}" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200">
+                    <i class="fas fa-edit mr-2"></i>
+                    Edit
+                  </button>
+                </div>
+              </div>
+            </div>
+          `).join('');
+
+          // Attach event listeners to the newly created buttons
+          attachLocationButtonListeners();
+        }
+      } catch (error) {
+        console.error('Tenant locations fetch error:', error);
+        document.getElementById('tenantLocations').innerHTML = '<p style="color: var(--error-color);">Error memuat data lokasi</p>';
+      }
+    }
+
+    // Function to attach event listeners to location buttons
+    function attachLocationButtonListeners() {
+      // Auto-detect buttons
+      document.querySelectorAll('[data-action="auto-detect"]').forEach(button => {
+        button.addEventListener('click', function() {
+          const tenantId = this.getAttribute('data-tenant-id');
+          autoDetectLocation(tenantId);
+        });
+      });
+
+      // Edit location buttons
+      document.querySelectorAll('[data-action="edit-location"]').forEach(button => {
+        button.addEventListener('click', function() {
+          const tenantId = this.getAttribute('data-tenant-id');
+          editTenantLocation(tenantId);
+        });
+      });
+    }
+
+    function showTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+      document.querySelectorAll('.nav-item').forEach(nav => {
+        nav.classList.remove('nav-active', 'bg-blue-600', 'text-white');
+        nav.classList.add('text-gray-600');
+      });
+
+      const activeTab = document.getElementById(tabName + 'Tab');
+      if (activeTab) activeTab.classList.remove('hidden');
+
+      const activeBtn = document.querySelector(`button[data-tab="${tabName}"]`);
+      if (activeBtn) {
+        activeBtn.classList.add('nav-active');
+        activeBtn.classList.remove('text-gray-600');
+      }
+
+      const titles = {
+        dashboard: 'Dashboard',
+        teachers: 'Manajemen Guru',
+        rules: 'Aturan Waktu',
+        attendance: 'Log Kehadiran',
+        payroll: 'Penggajian',
+        documents: 'Dokumen HR',
+        settings: 'Pengaturan'
+      };
+      setEl('pageTitle', titles[tabName]);
+
+      if (tabName === 'dashboard') fetchDashboardData();
+      else if (tabName === 'teachers') fetchTeachers();
+      else if (tabName === 'rules') fetchRules();
+      else if (tabName === 'attendance') fetchAttendanceLogs();
+      else if (tabName === 'settings') {
+        showSettingsTab('locations');
+      }
+    }
+
+    function showAddTeacherModal() {
+      currentTeacherId = null;
+      document.getElementById('teacherModalTitle').textContent = 'Tambah Guru';
+      document.getElementById('teacherForm').reset();
+      document.getElementById('teacherModal').classList.add('show');
+    }
+
+    function hideTeacherModal() {
+      document.getElementById('teacherModal').classList.remove('show');
+    }
+
+    function showAddRuleModal() {
+      currentRuleId = null;
+      document.getElementById('ruleModalTitle').textContent = 'Tambah Aturan';
+      document.getElementById('ruleForm').reset();
+      document.getElementById('ruleModal').classList.add('show');
+    }
+
+    function hideRuleModal() {
+      document.getElementById('ruleModal').classList.remove('show');
+    }
+
+    function showLocationModal() {
+      document.getElementById('locationModal').classList.add('show');
+    }
+
+    function hideLocationModal() {
+      document.getElementById('locationModal').classList.remove('show');
+    }
+
+    async function editTeacher(id) {
+      try {
+        const response = await fetch(`/api/admin/teachers/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const res = await response.json();
+
+        if (res.success) {
+          const teacher = res.data;
+          document.getElementById('teacherModalTitle').textContent = 'Edit Guru';
+          const form = document.getElementById('teacherForm');
+          form.nama.value = teacher.nama;
+          form.nik.value = teacher.nik;
+          form.nip.value = teacher.nip;
+          form.sebagai.value = teacher.sebagai;
+          form.email.value = teacher.email;
+          document.getElementById('teacherModal').classList.add('show');
+        }
+      } catch (error) {
+        console.error('Error fetching teacher detail:', error);
+      }
+    }
+
+    async function editRule(id) {
+      try {
+        const response = await fetch(`/api/admin/rules/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const res = await response.json();
+
+        if (res.success) {
+          const rule = res.data;
+          document.getElementById('ruleModalTitle').textContent = 'Edit Aturan';
+          const form = document.getElementById('ruleForm');
+          form.tenant_id.value = rule.tenant_id;
+          form.tipe.value = rule.tipe;
+          form.jam_mulai.value = rule.jam_mulai;
+          form.jam_selesai.value = rule.jam_selesai;
+          form.keterangan.value = rule.keterangan;
+          form.status_log.value = rule.status_log;
+          document.getElementById('ruleModal').classList.add('show');
+        }
+      } catch (error) {
+        console.error('Error fetching rule detail:', error);
+      }
+    }
+
+    async function editTenantLocation(tenantId) {
+      try {
+        const response = await fetch('/api/admin/tenants', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const res = await response.json();
+
+        if (res.success) {
+          const tenant = res.data.find(t => t.tenant_id === tenantId);
+          if (tenant) {
+            document.getElementById('locationModalTitle').textContent = 'Edit Lokasi Sekolah';
+            const form = document.getElementById('locationForm');
+            document.getElementById('locationTenantId').value = tenant.tenant_id;
+            document.getElementById('locationNamaSekolah').value = tenant.nama_sekolah;
+            form.latitude.value = tenant.latitude || '';
+            form.longitude.value = tenant.longitude || '';
+            form.location_radius.value = tenant.location_radius || 100;
+            form.location_name.value = tenant.location_name || '';
+
+            // Update coordinate preview
+            updateCoordinatePreview();
+
+            // Reset map state
+            const mapContainer = document.getElementById('mapContainer');
+            if (!mapContainer.classList.contains('hidden')) {
+              toggleMap(); // Close map if open
+            }
+
+            showLocationModal();
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching tenant detail:', error);
+      }
+    }
+
+    async function deleteTeacher(id) {
+      if (confirm('Apakah Anda yakin ingin menghapus guru ini?')) {
+        try {
+          const response = await fetch(`/api/admin/teachers/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const res = await response.json();
+          if (res.success) {
+            fetchTeachers();
+          }
+        } catch (error) {
+          console.error('Delete teacher error:', error);
+        }
+      }
+    }
+
+    async function deleteRule(id) {
+      if (confirm('Apakah Anda yakin ingin menghapus aturan ini?')) {
+        try {
+          const response = await fetch(`/api/admin/rules/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const res = await response.json();
+          if (res.success) {
+            fetchRules();
+          }
+        } catch (error) {
+          console.error('Delete rule error:', error);
+        }
+      }
+    }
+
+    // Bulk actions
+    function toggleSelectAll() {
+      const selectAll = document.getElementById('selectAll');
+      const checkboxes = document.querySelectorAll('.teacher-checkbox');
+      checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    }
+
+    function updateSelectAll() {
+      const checkboxes = document.querySelectorAll('.teacher-checkbox');
+      const selectAll = document.getElementById('selectAll');
+      selectAll.checked = checkboxes.length > 0 && Array.from(checkboxes).every(cb => cb.checked);
+    }
+
+    function getSelectedTeacherIds() {
+      const checkboxes = document.querySelectorAll('.teacher-checkbox:checked');
+      return Array.from(checkboxes).map(cb => parseInt(cb.value));
+    }
+
+    async function deleteSelectedTeachers() {
+      const selectedIds = getSelectedTeacherIds();
+      if (selectedIds.length === 0) {
+        alert('Pilih guru yang ingin dihapus');
+        return;
+      }
+      if (!confirm(`Hapus ${selectedIds.length} guru terpilih?`)) return;
+
+      try {
+        const promises = selectedIds.map(id =>
+          fetch(`/api/admin/teachers/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        );
+        await Promise.all(promises);
+        fetchTeachers();
+      } catch (error) {
+        console.error('Bulk delete error:', error);
+        alert('Terjadi kesalahan saat menghapus');
+      }
+    }
+
+    async function createUsersForSelected() {
+      const selectedIds = getSelectedTeacherIds();
+      if (selectedIds.length === 0) {
+        alert('Pilih guru yang ingin dibuat user-nya');
+        return;
+      }
+
+      try {
+        const promises = selectedIds.map(id =>
+          fetch(`/api/admin/teachers/${id}/create-user`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+        );
+        const results = await Promise.all(promises);
+        let successCount = 0;
+        let errorMessages = [];
+        for (let i = 0; i < results.length; i++) {
+          const res = await results[i].json();
+          if (res.success) {
+            successCount++;
+          } else {
+            errorMessages.push(`Guru ${selectedIds[i]}: ${res.message}`);
+          }
+        }
+        if (successCount > 0) {
+          alert(`${successCount} user berhasil dibuat`);
+        }
+        if (errorMessages.length > 0) {
+          alert('Error:\n' + errorMessages.join('\n'));
+        }
+        fetchTeachers();
+      } catch (error) {
+        console.error('Bulk create user error:', error);
+        alert('Terjadi kesalahan');
+      }
+    }
+
+    async function createUser(teacherId) {
+      if (!confirm('Buat user account untuk guru ini?')) return;
+
+      try {
+        const response = await fetch(`/api/admin/teachers/${teacherId}/create-user`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const res = await response.json();
+        if (res.success) {
+          alert('User account berhasil dibuat');
+          fetchTeachers();
+        } else {
+          alert('Error: ' + res.message);
+        }
+      } catch (error) {
+        console.error('Create user error:', error);
+        alert('Terjadi kesalahan');
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    }
+
+    // Settings Navigation
+    function showSettingsTab(tabName) {
+      // Hide all setting contents
+      document.querySelectorAll('.setting-content').forEach(content => {
+        content.classList.add('hidden');
+      });
+
+      // Remove active class from all nav items
+      document.querySelectorAll('.settings-nav-item').forEach(item => {
+        item.classList.remove('active', 'text-blue-600', 'border-blue-500');
+        item.classList.add('text-gray-500', 'border-transparent');
+      });
+
+      // Show selected content and activate nav item
+      const content = document.getElementById(tabName + 'Setting');
+      const navItem = document.querySelector(`[data-setting="${tabName}"]`);
+
+      if (content) content.classList.remove('hidden');
+      if (navItem) {
+        navItem.classList.add('active', 'text-blue-600', 'border-blue-500');
+        navItem.classList.remove('text-gray-500', 'border-transparent');
+      }
+
+      // Load data based on tab
+      if (tabName === 'locations') {
+        fetchTenantLocations();
+      } else if (tabName === 'attendance') {
+        fetchAttendanceRules();
+      }
+    }
+
+    // Auto Detect Location Functions
+    async function autoDetectLocation(tenantId) {
+      if (!navigator.geolocation) {
+        alert('Browser tidak mendukung geolokasi');
+        return;
+      }
+
+      // Show loading state
+      const button = event.target.closest('button');
+      const originalText = button.innerHTML;
+      button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Detecting...';
+      button.disabled = true;
+
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 300000
+          });
+        });
+
+        const latitude = position.coords.latitude.toFixed(6);
+        const longitude = position.coords.longitude.toFixed(6);
+
+        // Update tenant location
+        const response = await fetch(`/api/admin/tenants/${tenantId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            latitude: latitude,
+            longitude: longitude,
+            location_radius: 100,
+            location_name: `Auto-detected at ${new Date().toLocaleString('id-ID')}`
+          })
+        });
+
+        if (response.ok) {
+          fetchTenantLocations(); // Refresh the list
+          alert(`Lokasi berhasil dideteksi!\nLatitude: ${latitude}\nLongitude: ${longitude}`);
+        } else {
+          throw new Error('Failed to update location');
+        }
+
+      } catch (error) {
+        console.error('Location detection error:', error);
+        if (error.code === 1) {
+          alert('Akses lokasi ditolak. Silakan izinkan akses lokasi di browser Anda.');
+        } else if (error.code === 2) {
+          alert('Lokasi tidak dapat dideteksi. Pastikan GPS aktif dan coba lagi.');
+        } else {
+          alert('Error mendeteksi lokasi: ' + error.message);
+        }
+      } finally {
+        button.innerHTML = originalText;
+        button.disabled = false;
+      }
+    }
+
+    async function autoDetectLocationModal() {
+      if (!navigator.geolocation) {
+        alert('Browser tidak mendukung geolokasi');
+        return;
+      }
+
+      const button = event.target.closest('button');
+      const originalText = button.innerHTML;
+      const statusDiv = document.getElementById('locationStatus');
+
+      button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Detecting...';
+      button.disabled = true;
+      statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Mendapatkan koordinat GPS...';
+
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 300000
+          });
+        });
+
+        const latitude = position.coords.latitude.toFixed(6);
+        const longitude = position.coords.longitude.toFixed(6);
+        const accuracy = Math.round(position.coords.accuracy);
+
+        // Fill the form inputs
+        document.getElementById('latitudeInput').value = latitude;
+        document.getElementById('longitudeInput').value = longitude;
+
+        // Update status and preview
+        statusDiv.innerHTML = `<i class="fas fa-check-circle mr-1 text-green-600"></i>Lokasi berhasil dideteksi (akurasi: ${accuracy}m)`;
+        document.getElementById('coordinatePreview').innerHTML = `📍 ${latitude}, ${longitude}`;
+
+        // Add success animation
+        statusDiv.classList.add('text-green-600');
+        setTimeout(() => {
+          statusDiv.classList.remove('text-green-600');
+        }, 3000);
+
+      } catch (error) {
+        console.error('Modal location detection error:', error);
+        let errorMessage = 'Gagal mendapatkan lokasi';
+
+        if (error.code === 1) {
+          errorMessage = 'Akses lokasi ditolak. Silakan izinkan akses lokasi.';
+        } else if (error.code === 2) {
+          errorMessage = 'Lokasi tidak dapat dideteksi. Pastikan GPS aktif.';
+        } else if (error.code === 3) {
+          errorMessage = 'Waktu habis mendapatkan lokasi. Coba lagi.';
+        }
+
+        statusDiv.innerHTML = `<i class="fas fa-exclamation-triangle mr-1 text-red-600"></i>${errorMessage}`;
+        statusDiv.classList.add('text-red-600');
+        setTimeout(() => {
+          statusDiv.classList.remove('text-red-600');
+        }, 3000);
+      } finally {
+        button.innerHTML = originalText;
+        button.disabled = false;
+      }
+    }
+
+    // Refresh tenant locations
+    function refreshTenantLocations() {
+      const container = document.getElementById('tenantLocations');
+      container.innerHTML = `
+        <div class="text-center py-12">
+          <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+          <p class="text-gray-600">Memuat ulang data lokasi...</p>
+        </div>
+      `;
+      fetchTenantLocations();
+    }
+
+    // Fetch attendance rules for settings
+    async function fetchAttendanceRules() {
+      try {
+        const response = await fetch('/api/admin/rules', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            const container = document.getElementById('attendanceRules');
+            if (data.data.length === 0) {
+              container.innerHTML = `
+                <div class="text-center py-12">
+                  <i class="fas fa-clock text-4xl text-gray-400 mb-4"></i>
+                  <p class="text-gray-600">Belum ada aturan absensi</p>
+                  <button onclick="showAddRuleModal()" class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700">
+                    <i class="fas fa-plus mr-2"></i>Tambah Aturan Pertama
+                  </button>
+                </div>
+              `;
+            } else {
+              container.innerHTML = data.data.map(rule => `
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h5 class="font-medium text-gray-900">${rule.tenant_id === 'DEFAULT' ? 'Default' : rule.tenant_id} - ${rule.tipe}</h5>
+                      <p class="text-sm text-gray-600">Jam: ${rule.jam_mulai} - ${rule.jam_selesai}</p>
+                      <p class="text-sm text-gray-600">Status: ${rule.status_log}</p>
+                    </div>
+                    <div class="flex space-x-2">
+                      <button onclick="editRule(${rule.id})" class="text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button onclick="deleteRule(${rule.id})" class="text-red-600 hover:text-red-800">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              `).join('');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Fetch attendance rules error:', error);
+      }
+    }
+
+    document.getElementById('teacherForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData);
+
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+
+      try {
+        const method = currentTeacherId ? 'PUT' : 'POST';
+        const url = currentTeacherId ? `/api/admin/teachers/${currentTeacherId}` : '/api/admin/teachers';
+
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(data)
+        });
+
+        const res = await response.json();
+        if (res.success) {
+          hideTeacherModal();
+          fetchTeachers();
+        }
+      } catch (error) {
+        console.error('Teacher form submit error:', error);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    });
+
+    document.getElementById('ruleForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData);
+
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+
+      try {
+        const method = currentRuleId ? 'PUT' : 'POST';
+        const url = currentRuleId ? `/api/admin/rules/${currentRuleId}` : '/api/admin/rules';
+
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(data)
+        });
+
+        const res = await response.json();
+        if (res.success) {
+          hideRuleModal();
+          fetchRules();
+        }
+      } catch (error) {
+        console.error('Rule form submit error:', error);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    });
+
+    // Update coordinate preview when inputs change
+    document.getElementById('latitudeInput').addEventListener('input', updateCoordinatePreview);
+    document.getElementById('longitudeInput').addEventListener('input', updateCoordinatePreview);
+
+    function updateCoordinatePreview() {
+      const lat = document.getElementById('latitudeInput').value;
+      const lng = document.getElementById('longitudeInput').value;
+      const preview = document.getElementById('coordinatePreview');
+
+      if (lat && lng) {
+        preview.innerHTML = `📍 ${parseFloat(lat).toFixed(6)}, ${parseFloat(lng).toFixed(6)}`;
+      } else {
+        preview.innerHTML = '';
+      }
+    }
+
+    document.getElementById('locationForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData);
+      const tenantId = data.tenant_id;
+
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+
+      try {
+        const response = await fetch(`/api/admin/tenants/${tenantId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(data)
+        });
+
+        const res = await response.json();
+        if (res.success) {
+          hideLocationModal();
+          fetchTenantLocations();
+          alert('Lokasi berhasil disimpan!');
+        } else {
+          alert('Error: ' + (res.message || 'Gagal menyimpan lokasi'));
+        }
+      } catch (error) {
+        console.error('Location form submit error:', error);
+        alert('Terjadi kesalahan saat menyimpan lokasi');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const now = new Date();
+      setEl('currentDate', now.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }));
+
+      setEl('adminName', user.username || 'Admin');
+
+      // Attach tab click handlers
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const tab = this.getAttribute('data-tab');
+          showTab(tab);
+        });
+      });
+
+      // Add settings navigation event listeners
+      document.querySelectorAll('.settings-nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+          const setting = this.getAttribute('data-setting');
+          showSettingsTab(setting);
+        });
+      });
+
+      // Add coordinate preview listeners
+      document.getElementById('latitudeInput')?.addEventListener('input', updateCoordinatePreview);
+      document.getElementById('longitudeInput')?.addEventListener('input', updateCoordinatePreview);
+
+      // Add modal auto-detect button listener
+      document.getElementById('autoDetectModalBtn')?.addEventListener('click', autoDetectLocationModal);
+
+      fetchDashboardData();
+    });
+  </script>
+
+  <!-- Leaflet JavaScript -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // Map functionality
+    let locationMap = null;
+    let locationMarker = null;
+    let currentLatLng = null;
+
+    function toggleMap() {
+      const mapContainer = document.getElementById('mapContainer');
+      const toggleBtn = document.querySelector('[onclick="toggleMap()"]');
+      const toggleText = document.getElementById('mapToggleText');
+
+      if (mapContainer.classList.contains('hidden')) {
+        mapContainer.classList.remove('hidden');
+        toggleText.textContent = 'Tutup Peta';
+        toggleBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+        toggleBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+
+        // Initialize map if not already done
+        if (!locationMap && typeof L !== 'undefined') {
+          setTimeout(() => {
+            initializeMap();
+          }, 100); // Small delay to ensure DOM is ready
+        }
+      } else {
+        mapContainer.classList.add('hidden');
+        toggleText.textContent = 'Buka Peta';
+        toggleBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+        toggleBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+      }
+    }
+
+    function initializeMap() {
+      try {
+        // Check if Leaflet is loaded
+        if (typeof L === 'undefined') {
+          throw new Error('Leaflet library not loaded');
+        }
+
+        // Default center (Indonesia)
+        const defaultLat = -2.2166;
+        const defaultLng = 113.9209;
+
+        locationMap = L.map('locationMap').setView([defaultLat, defaultLng], 5);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+          maxZoom: 18,
+          errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+        }).addTo(locationMap);
+
+        // Add click handler to map
+        locationMap.on('click', function(e) {
+          setLocationFromMap(e.latlng.lat, e.latlng.lng);
+        });
+
+        // Try to get current location
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function(position) {
+              const lat = position.coords.latitude;
+              const lng = position.coords.longitude;
+              locationMap.setView([lat, lng], 13);
+              setLocationFromMap(lat, lng);
+            },
+            function(error) {
+              console.log('Geolocation error:', error);
+              // Set default marker
+              setLocationFromMap(defaultLat, defaultLng);
+            },
+            { timeout: 10000 }
+          );
+        } else {
+          setLocationFromMap(defaultLat, defaultLng);
+        }
+
+      } catch (error) {
+        console.error('Map initialization error:', error);
+        // Show fallback message
+        const mapContainer = document.getElementById('locationMap');
+        mapContainer.innerHTML = `
+          <div class="flex flex-col items-center justify-center h-full text-gray-500">
+            <i class="fas fa-exclamation-triangle text-3xl mb-2"></i>
+            <p class="text-sm text-center">Peta tidak dapat dimuat</p>
+            <p class="text-xs text-center mt-1">Gunakan input manual koordinat</p>
+          </div>
+        `;
+        mapContainer.style.backgroundColor = '#f9fafb';
+      }
+    }
+
+    function setLocationFromMap(lat, lng) {
+      currentLatLng = { lat, lng };
+
+      // Update form inputs
+      document.getElementById('latitudeInput').value = lat.toFixed(6);
+      document.getElementById('longitudeInput').value = lng.toFixed(6);
+
+      // Update coordinate preview
+      updateCoordinatePreview();
+
+      // Update or create marker
+      if (locationMarker) {
+        locationMarker.setLatLng([lat, lng]);
+      } else {
+        locationMarker = L.marker([lat, lng], {
+          draggable: true
+        }).addTo(locationMap);
+
+        // Add drag handler
+        locationMarker.on('dragend', function(e) {
+          const position = e.target.getLatLng();
+          setLocationFromMap(position.lat, position.lng);
+        });
+      }
+
+      // Center map on marker
+      locationMap.setView([lat, lng], 15);
+    }
+
+    function centerMapOnCurrent() {
+      if (currentLatLng) {
+        locationMap.setView([currentLatLng.lat, currentLatLng.lng], 15);
+      } else if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            locationMap.setView([lat, lng], 15);
+            setLocationFromMap(lat, lng);
+          },
+          function(error) {
+            console.log('Geolocation error:', error);
+            alert('Tidak dapat mendapatkan lokasi saat ini. Pastikan GPS aktif.');
+          }
+        );
+      } else {
+        alert('Browser tidak mendukung geolokasi');
+      }
+    }
+
+    function clearMapMarker() {
+      if (locationMarker) {
+        locationMap.removeLayer(locationMarker);
+        locationMarker = null;
+        currentLatLng = null;
+
+        // Clear form inputs
+        document.getElementById('latitudeInput').value = '';
+        document.getElementById('longitudeInput').value = '';
+
+        // Update preview
+        updateCoordinatePreview();
+
+        // Show feedback
+        const statusDiv = document.getElementById('locationStatus');
+        statusDiv.innerHTML = '<i class="fas fa-trash text-red-600 mr-1"></i>Marker dihapus dari peta';
+        statusDiv.classList.add('text-red-600');
+        setTimeout(() => {
+          statusDiv.innerHTML = '<i class="fas fa-info-circle mr-1"></i>Klik tombol di atas untuk mendapatkan koordinat GPS saat ini';
+          statusDiv.classList.remove('text-red-600');
+        }, 3000);
+      } else {
+        alert('Tidak ada marker yang bisa dihapus');
+      }
+    }
+
+    // Update the updateCoordinatePreview function to work with map
+    function updateCoordinatePreview() {
+      const latInput = document.getElementById('latitudeInput');
+      const lngInput = document.getElementById('longitudeInput');
+      const preview = document.getElementById('coordinatePreview');
+
+      const lat = latInput.value;
+      const lng = lngInput.value;
+
+      if (lat && lng) {
+        preview.innerHTML = `📍 ${parseFloat(lat).toFixed(6)}, ${parseFloat(lng).toFixed(6)}`;
+        preview.classList.remove('text-gray-500');
+        preview.classList.add('text-blue-700', 'font-semibold');
+      } else {
+        preview.innerHTML = 'Belum ada koordinat dipilih';
+        preview.classList.remove('text-blue-700', 'font-semibold');
+        preview.classList.add('text-gray-500');
+      }
+    }
+
+    // Enhanced coordinate preview update
+    function updateCoordinatePreview() {
+      const latInput = document.getElementById('latitudeInput');
+      const lngInput = document.getElementById('longitudeInput');
+      const preview = document.getElementById('coordinatePreview');
+      const accuracy = document.getElementById('coordinateAccuracy');
+
+      const lat = latInput.value;
+      const lng = lngInput.value;
+
+      if (lat && lng) {
+        const latNum = parseFloat(lat);
+        const lngNum = parseFloat(lng);
+
+        // Format coordinates nicely
+        const latFormatted = latNum.toFixed(6);
+        const lngFormatted = lngNum.toFixed(6);
+
+        preview.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-gray-900">${latFormatted}, ${lngFormatted}</span>
+            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">GPS Ready</span>
+          </div>
+        `;
+        preview.classList.remove('text-gray-500');
+        preview.classList.add('text-blue-700');
+
+        // Show accuracy indicator
+        accuracy.classList.remove('hidden');
+      } else {
+        preview.innerHTML = '<span class="text-gray-500">Belum ada koordinat dipilih</span>';
+        preview.classList.remove('text-blue-700');
+        preview.classList.add('text-gray-500');
+        accuracy.classList.add('hidden');
+      }
+    }
+
+    // Enhanced copy coordinates with better feedback
+    function copyCoordinates() {
+      const preview = document.getElementById('coordinatePreview');
+      const coordinates = preview.textContent;
+
+      if (coordinates && !coordinates.includes('Belum ada koordinat')) {
+        // Extract just the coordinates part
+        const coordMatch = coordinates.match(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
+        if (coordMatch) {
+          const coordsOnly = `${coordMatch[1]}, ${coordMatch[2]}`;
+
+          navigator.clipboard.writeText(coordsOnly).then(() => {
+            // Show success feedback
+            const originalHTML = preview.innerHTML;
+            preview.innerHTML = `
+              <div class="flex items-center text-green-700">
+                <i class="fas fa-check-circle mr-2"></i>
+                <span class="font-semibold">Koordinat berhasil disalin!</span>
+              </div>
+            `;
+            preview.classList.add('bg-green-50', 'border-green-300');
+
+            setTimeout(() => {
+              preview.innerHTML = originalHTML;
+              preview.classList.remove('bg-green-50', 'border-green-300');
+            }, 2000);
+          }).catch(err => {
+            console.error('Failed to copy:', err);
+            alert('Gagal menyalin koordinat. Coba lagi.');
+          });
+        }
+      } else {
+        alert('Belum ada koordinat yang bisa disalin');
+      }
+    }
+
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('SW registered: ', registration);
+          })
+          .catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+
+    // Override the existing updateCoordinatePreview to work with our new system
+    window.updateCoordinatePreview = updateCoordinatePreview;
+  </script>
+</body>
+</html>

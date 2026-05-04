@@ -1,0 +1,341 @@
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Host: 127.0.0.1
+-- Generation Time: May 02, 2026 at 04:52 AM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Database: `ypwi_absensi`
+--
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `attendance_logs`
+--
+
+CREATE TABLE `attendance_logs` (
+  `id` bigint(20) NOT NULL,
+  `teacher_id` int(11) NOT NULL,
+  `tenant_id` varchar(20) NOT NULL,
+  `waktu_scan` datetime NOT NULL,
+  `jenis` enum('masuk','pulang') NOT NULL,
+  `metode` enum('dashboard','scanner') NOT NULL DEFAULT 'scanner',
+  `status` enum('tepat_waktu','terlambat') NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `teachers`
+--
+
+CREATE TABLE `teachers` (
+  `id` int(11) NOT NULL,
+  `nama` varchar(100) NOT NULL,
+  `nik` varchar(20) NOT NULL,
+  `tempat_lahir` varchar(50) DEFAULT NULL,
+  `tanggal_lahir` date DEFAULT NULL,
+  `jenis_kelamin` enum('L','P') DEFAULT NULL,
+  `alamat` text DEFAULT NULL,
+  `no_wa` varchar(20) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `status_kepegawaian` varchar(50) DEFAULT NULL,
+  `tmt` date DEFAULT NULL,
+  `nip` varchar(50) DEFAULT NULL,
+  `scan_id` varchar(20) DEFAULT NULL,
+  `link_foto` varchar(255) DEFAULT NULL,
+  `keterangan` text DEFAULT NULL,
+  `status_aktif` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Triggers `teachers`
+--
+DELIMITER $$
+CREATE TRIGGER `before_teacher_insert` BEFORE INSERT ON `teachers` FOR EACH ROW BEGIN
+    IF NEW.scan_id IS NULL OR NEW.scan_id = "" THEN
+        SET NEW.scan_id = NEW.nik;
+    END IF;
+    -- IF NEW.tmt IS NOT NULL THEN
+    --     IF TIMESTAMPDIFF(YEAR, NEW.tmt, CURDATE()) >= 2 AND (NEW.nip IS NULL OR NEW.nip = "") THEN
+    --         SIGNAL SQLSTATE "45000"
+    --         SET MESSAGE_TEXT = "NIP wajib diisi jika TMT sudah 2 tahun atau lebih";
+    --     END IF;
+    -- END IF;
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `before_teacher_update` BEFORE UPDATE ON `teachers` FOR EACH ROW BEGIN
+    IF NEW.scan_id IS NULL OR NEW.scan_id = "" THEN
+        SET NEW.scan_id = NEW.nik;
+    END IF;
+    -- IF NEW.tmt IS NOT NULL THEN
+    --     IF TIMESTAMPDIFF(YEAR, NEW.tmt, CURDATE()) >= 2 AND (NEW.nip IS NULL OR NEW.nip = "") THEN
+    --         SIGNAL SQLSTATE "45000"
+    --         SET MESSAGE_TEXT = "NIP wajib diisi jika TMT sudah 2 tahun atau lebih";
+    --     END IF;
+    -- END IF;
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `teacher_assignments`
+--
+
+CREATE TABLE `teacher_assignments` (
+  `id` int(11) NOT NULL,
+  `teacher_id` int(11) NOT NULL,
+  `tenant_id` varchar(20) NOT NULL,
+  `jabatan_di_unit` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `temp_teachers`
+--
+
+CREATE TABLE `temp_teachers` (
+  `Nama` varchar(255) DEFAULT NULL,
+  `NIY` varchar(100) DEFAULT NULL,
+  `NIK` varchar(100) DEFAULT NULL,
+  `Jenis_Kelamin` varchar(50) DEFAULT NULL,
+  `Tempat_Lahir` varchar(100) DEFAULT NULL,
+  `Tanggal_Lahir` varchar(100) DEFAULT NULL,
+  `Alamat` text DEFAULT NULL,
+  `No_WA` varchar(50) DEFAULT NULL,
+  `Email` varchar(255) DEFAULT NULL,
+  `tenant_id` varchar(50) DEFAULT NULL,
+  `Jenjang` varchar(100) DEFAULT NULL,
+  `Jabatan` varchar(100) DEFAULT NULL,
+  `Status_Kepegawaian` varchar(100) DEFAULT NULL,
+  `TMT` varchar(100) DEFAULT NULL,
+  `Status_Aktif` varchar(50) DEFAULT NULL,
+  `Keterangan` text DEFAULT NULL,
+  `Link_Foto` varchar(255) DEFAULT NULL,
+  `Terima_Notifikasi` varchar(20) DEFAULT NULL,
+  `Gaji_Pokok` varchar(100) DEFAULT NULL,
+  `Tunj_Kinerja` varchar(100) DEFAULT NULL,
+  `Tunj_Umum` varchar(100) DEFAULT NULL,
+  `Tunj_Istri` varchar(100) DEFAULT NULL,
+  `Tunj_Anak` varchar(100) DEFAULT NULL,
+  `Tunj_Kepala_Sekolah` varchar(100) DEFAULT NULL,
+  `Tunj_Wali_Kelas` varchar(100) DEFAULT NULL,
+  `Honor_Bendahara` varchar(100) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tenants`
+--
+
+CREATE TABLE `tenants` (
+  `tenant_id` varchar(20) NOT NULL,
+  `nama_sekolah` varchar(100) NOT NULL,
+  `absensi_method` enum('personal','gateway') NOT NULL DEFAULT 'personal',
+  `wa_api_key` varchar(255) DEFAULT NULL,
+  `latitude` decimal(10,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
+  `location_radius` int(11) DEFAULT 100,
+  `location_name` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `id` int(11) NOT NULL,
+  `username` varchar(50) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `role` enum('admin','guru') NOT NULL,
+  `guru_id` int(11) DEFAULT NULL,
+  `tenant_id` varchar(20) DEFAULT NULL,
+  `is_profile_complete` tinyint(1) DEFAULT 0,
+  `is_default_password` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Indexes for dumped tables
+--
+
+--
+-- Indexes for table `attendance_logs`
+--
+ALTER TABLE `attendance_logs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_teacher_id` (`teacher_id`),
+  ADD KEY `idx_tenant_id` (`tenant_id`),
+  ADD KEY `idx_waktu_scan` (`waktu_scan`),
+  ADD KEY `idx_jenis` (`jenis`);
+
+--
+-- Indexes for table `teachers`
+--
+ALTER TABLE `teachers`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `nik` (`nik`),
+  ADD UNIQUE KEY `scan_id` (`scan_id`),
+  ADD KEY `idx_nik` (`nik`),
+  ADD KEY `idx_scan_id` (`scan_id`),
+  ADD KEY `idx_status_aktif` (`status_aktif`);
+
+--
+-- Indexes for table `teacher_assignments`
+--
+ALTER TABLE `teacher_assignments`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_assignment` (`teacher_id`,`tenant_id`),
+  ADD KEY `idx_teacher_id` (`teacher_id`),
+  ADD KEY `idx_tenant_id` (`tenant_id`);
+
+--
+-- Indexes for table `tenants`
+--
+ALTER TABLE `tenants`
+  ADD PRIMARY KEY (`tenant_id`),
+  ADD KEY `idx_tenant_id` (`tenant_id`);
+
+--
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `username` (`username`),
+  ADD KEY `idx_username` (`username`),
+  ADD KEY `idx_guru_id` (`guru_id`),
+  ADD KEY `idx_tenant_id` (`tenant_id`),
+  ADD KEY `idx_role` (`role`);
+
+--
+-- AUTO_INCREMENT for dumped tables
+--
+
+--
+-- AUTO_INCREMENT for table `attendance_logs`
+--
+ALTER TABLE `attendance_logs`
+  MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `teachers`
+--
+ALTER TABLE `teachers`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `teacher_assignments`
+--
+ALTER TABLE `teacher_assignments`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `attendance_logs`
+--
+ALTER TABLE `attendance_logs`
+  ADD CONSTRAINT `attendance_logs_ibfk_1` FOREIGN KEY (`teacher_id`) REFERENCES `teachers` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `attendance_logs_ibfk_2` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`tenant_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `teacher_assignments`
+--
+ALTER TABLE `teacher_assignments`
+  ADD CONSTRAINT `teacher_assignments_ibfk_1` FOREIGN KEY (`teacher_id`) REFERENCES `teachers` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `teacher_assignments_ibfk_2` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`tenant_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `users`
+--
+ALTER TABLE `users`
+  ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`guru_id`) REFERENCES `teachers` (`id`) ON DELETE SET NULL,
+  ADD CONSTRAINT `users_ibfk_2` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`tenant_id`) ON DELETE CASCADE;
+
+--
+-- Table structure for table `attendance_rules`
+--
+
+CREATE TABLE `attendance_rules` (
+  `id` int(11) NOT NULL,
+  `tenant_id` varchar(20) NOT NULL,
+  `tipe` enum('Datang','Pulang') NOT NULL,
+  `jam_mulai` time NOT NULL,
+  `jam_selesai` time NOT NULL,
+  `keterangan` varchar(255) DEFAULT NULL,
+  `status_log` enum('tepat_waktu','terlambat') NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Indexes for table `attendance_rules`
+--
+ALTER TABLE `attendance_rules`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_tenant_id` (`tenant_id`);
+
+--
+-- AUTO_INCREMENT for table `attendance_rules`
+--
+ALTER TABLE `attendance_rules`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+COMMIT;
+
+--
+-- Default uniform rules (tenant_id = 'DEFAULT')
+INSERT INTO `attendance_rules` (`tenant_id`, `tipe`, `jam_mulai`, `jam_selesai`, `keterangan`, `status_log`) VALUES
+('DEFAULT', 'Datang', '06:00:00', '07:30:00', 'Waktu datang pagi (default)', 'tepat_waktu'),
+('DEFAULT', 'Datang', '07:30:01', '08:00:00', 'Datang terlambat pagi (default)', 'terlambat'),
+('DEFAULT', 'Pulang', '14:00:00', '15:30:00', 'Waktu pulang siang (default)', 'tepat_waktu'),
+('DEFAULT', 'Pulang', '15:30:01', '16:00:00', 'Pulang terlambat (default)', 'terlambat');
+
+-- School specific rules (can override defaults)
+INSERT INTO `attendance_rules` (`tenant_id`, `tipe`, `jam_mulai`, `jam_selesai`, `keterangan`, `status_log`) VALUES
+('SDIT', 'Datang', '06:00:00', '07:30:00', 'Waktu datang pagi', 'tepat_waktu'),
+('SDIT', 'Datang', '07:30:01', '08:00:00', 'Datang terlambat pagi', 'terlambat'),
+('SDIT', 'Pulang', '14:00:00', '15:30:00', 'Waktu pulang siang', 'tepat_waktu'),
+('SDIT', 'Pulang', '15:30:01', '16:00:00', 'Pulang terlambat', 'terlambat');
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
