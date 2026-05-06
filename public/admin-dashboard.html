@@ -172,7 +172,7 @@
                   <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">NIK</th>
                   <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">NIP</th>
                   <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status Kepegawaian</th>
-                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tenant ID</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Sekolah</th>
                   <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                   <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Aksi</th>
                 </tr>
@@ -315,9 +315,9 @@
               <form id="singleWhatsAppForm" class="space-y-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Guru</label>
-                  <select id="singleTeacherSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-                    <option value="">Pilih Guru...</option>
-                  </select>
+                  <input type="text" id="singleTeacherInput" list="teacherList" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ketik nama guru..." required autocomplete="off">
+                  <datalist id="teacherList"></datalist>
+                  <input type="hidden" id="singleTeacherSelect" name="teacherId">
                 </div>
 
                 <div>
@@ -640,9 +640,9 @@
         <h3 class="text-lg font-semibold mb-4" id="ruleModalTitle">Tambah Aturan</h3>
         <form id="ruleForm">
           <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Tenant ID</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">SEKOLAH</label>
             <select name="tenant_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-              <option value="">Pilih Tenant</option>
+              <option value="">Pilih Sekolah</option>
             </select>
           </div>
           <div class="mb-4">
@@ -690,7 +690,7 @@
               <i class="fas fa-map-marker-alt text-blue-600"></i>
             </div>
             <div>
-              <h3 class="text-lg font-semibold text-gray-900">Konfigurasi Lokasi Sekolah</h3>
+              <h3 id="locationModalTitle" class="text-lg font-semibold text-gray-900">Konfigurasi Lokasi Sekolah</h3>
               <p class="text-gray-600 text-sm">Atur koordinat GPS untuk validasi absensi</p>
             </div>
           </div>
@@ -1016,7 +1016,7 @@
           console.log('Teachers items count:', items.length);
 
           // Update pagination info
-          currentPage = res.pagination.currentPage;
+          currentPage = res.pagination.page;
           totalPages = res.pagination.totalPages;
 
           const tbody = document.getElementById('teachersTable');
@@ -1030,11 +1030,11 @@
               <td class="px-6 py-4 text-sm text-gray-500">${t.nik || '-'}</td>
               <td class="px-6 py-4 text-sm text-gray-500">${t.nip || '-'}</td>
               <td class="px-6 py-4 text-sm text-gray-500">${t.status_kepegawaian || '-'}</td>
-              <td class="px-6 py-4 text-sm text-gray-500">
-                <div class="max-w-xs truncate" title="${t.tenant_names || 'Belum ditugaskan'}">
-                  ${t.tenant_names || 'Belum ditugaskan'}
-                </div>
-              </td>
+               <td class="px-6 py-4 text-sm text-gray-500">
+                 <div class="max-w-xs truncate" title="${t.assignments && t.assignments.length > 0 ? t.assignments.map(a => a.nama_sekolah || a.tenant_id).join(', ') : 'Belum ditugaskan'}">
+                   ${t.assignments && t.assignments.length > 0 ? t.assignments.map(a => a.nama_sekolah || a.tenant_id).join(', ') : 'Belum ditugaskan'}
+                 </div>
+               </td>
               <td class="px-6 py-4 text-sm">
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${t.status_aktif ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
                   ${t.status_aktif ? 'Aktif' : 'Nonaktif'}
@@ -1144,7 +1144,7 @@
           const tbody = document.getElementById('attendanceTable');
           tbody.innerHTML = items.map(a => `
             <tr class="hover:bg-gray-50">
-              <td class="px-6 py-4 text-sm text-gray-900">${a.nama_guru || '-'}</td>
+              <td class="px-6 py-4 text-sm text-gray-900">${a.nama || '-'}</td>
               <td class="px-6 py-4 text-sm text-gray-500">${a.nip || '-'}</td>
               <td class="px-6 py-4 text-sm text-gray-500">${a.jenis}</td>
               <td class="px-6 py-4 text-sm text-gray-500">${new Date(a.waktu_scan).toLocaleString('id-ID')}</td>
@@ -1175,9 +1175,12 @@
         }
 
         const res = await response.json();
+        console.log('Tenants API response:', res);
 
         if (res.success) {
           const items = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
+          console.log('Processed items:', items.length, 'tenants');
+          console.log('First item sample:', items[0]);
           const container = document.getElementById('tenantLocations');
 
           if (items.length === 0) {
@@ -1189,6 +1192,7 @@
           document.getElementById('totalSchools').textContent = items.length;
           document.getElementById('configuredLocations').textContent = items.filter(t => t.latitude && t.longitude).length;
 
+          console.log('Rendering tenant:', tenant.nama_sekolah, 'lat:', tenant.latitude, 'lng:', tenant.longitude);
           container.innerHTML = items.map(tenant => `
             <div class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow duration-200">
               <div class="flex items-start justify-between mb-4">
@@ -1609,16 +1613,19 @@
 
     // Pagination functions
     function updatePaginationControls(pagination) {
-      const { currentPage, totalPages, totalRecords, limit, hasNextPage, hasPrevPage } = pagination;
+      const { page, totalPages, total, limit } = pagination;
 
       // Update pagination info
-      const startRecord = (currentPage - 1) * limit + 1;
-      const endRecord = Math.min(currentPage * limit, totalRecords);
-      document.getElementById('paginationInfo').textContent = `Menampilkan ${startRecord}-${endRecord} dari ${totalRecords} data`;
+      const startRecord = (page - 1) * limit + 1;
+      const endRecord = Math.min(page * limit, total);
+      document.getElementById('paginationInfo').textContent = `Menampilkan ${startRecord}-${endRecord} dari ${total} data`;
 
       // Update prev/next buttons
       const prevBtn = document.getElementById('prevPageBtn');
       const nextBtn = document.getElementById('nextPageBtn');
+
+      const hasPrevPage = page > 1;
+      const hasNextPage = page < totalPages;
 
       prevBtn.disabled = !hasPrevPage;
       nextBtn.disabled = !hasNextPage;
@@ -2220,15 +2227,59 @@
 
         if (response.ok) {
           const result = await response.json();
-          const select = document.getElementById('singleTeacherSelect');
-          select.innerHTML = '<option value="">Pilih Guru...</option>';
+          const datalist = document.getElementById('teacherList');
+          datalist.innerHTML = '';
+
+          // Store teacher data for lookup
+          window.teacherData = {};
 
           result.data.forEach(teacher => {
             if (teacher.no_wa) { // Only show teachers with WhatsApp numbers
               const option = document.createElement('option');
-              option.value = teacher.id;
-              option.textContent = `${teacher.nama} (${teacher.no_wa}) - ${teacher.tenant_id}`;
-              select.appendChild(option);
+
+              // Get assignment info (jabatan and school name)
+              const assignment = teacher.assignments && teacher.assignments.length > 0 ? teacher.assignments[0] : null;
+              const jabatan = assignment ? assignment.jabatan_di_unit || 'Guru' : 'Guru';
+              const schoolName = assignment ? assignment.nama_sekolah || 'Unknown' : 'Unknown';
+
+              // Display format: "Nama Guru (No WA) - Jabatan"
+              const displayText = `${teacher.nama} (${teacher.no_wa}) - ${jabatan}`;
+              option.value = displayText;
+
+              // Store teacher data for later lookup
+              window.teacherData[displayText] = {
+                id: teacher.id,
+                nama: teacher.nama,
+                no_wa: teacher.no_wa,
+                jabatan: jabatan,
+                schoolName: schoolName
+              };
+
+              datalist.appendChild(option);
+            }
+          });
+
+          // Add input event listener for selection
+          const input = document.getElementById('singleTeacherInput');
+          const hiddenInput = document.getElementById('singleTeacherSelect');
+
+          input.addEventListener('input', function() {
+            const selectedText = this.value;
+            const teacher = window.teacherData[selectedText];
+            if (teacher) {
+              hiddenInput.value = teacher.id;
+            } else {
+              hiddenInput.value = '';
+            }
+          });
+
+          input.addEventListener('change', function() {
+            const selectedText = this.value;
+            const teacher = window.teacherData[selectedText];
+            if (!teacher && this.value !== '') {
+              // Invalid selection, clear it
+              this.value = '';
+              hiddenInput.value = '';
             }
           });
         }

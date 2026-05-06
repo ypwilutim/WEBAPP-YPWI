@@ -1,0 +1,9 @@
+@echo off
+echo Testing admin summary endpoint with no token...
+curl -X GET "http://localhost:3000/api/admin/summary" -H "Content-Type: application/json"
+echo.
+echo Testing with invalid token...
+curl -X GET "http://localhost:3000/api/admin/summary" -H "Authorization: Bearer invalid" -H "Content-Type: application/json"
+echo.
+echo Press any key to continue...
+pause >nul

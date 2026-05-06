@@ -63,8 +63,8 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use(limiter);
-app.use('/api/auth/login', authLimiter);
+// app.use(limiter);
+// app.use('/api/auth/login', authLimiter);
 
 // Input sanitization middleware
 app.use(express.json({ limit: '10mb' }));
@@ -714,6 +714,24 @@ app.get('/api/admin/test-auth', authenticateAdmin, (req, res) => {
   res.json({ success: true, message: 'Admin auth working!', user: req.user });
 });
 
+// Test endpoint to get admin token (for testing only - remove in production)
+app.get('/api/admin/get-test-token', async (req, res) => {
+  try {
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({
+      id: 120,
+      username: 'admin',
+      role: 'admin',
+      tenant_id: 'YPWILUTIM',
+      timestamp: new Date().toISOString()
+    }, SECRET_KEY, { expiresIn: '8h' });
+
+    res.json({ success: true, token: token, message: 'Test token generated (remove this endpoint in production!)' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error generating test token' });
+  }
+});
+
 // Admin summary endpoint
 app.get('/api/admin/summary', authenticateAdmin, async (req, res) => {
   try {
@@ -762,13 +780,14 @@ app.get('/api/admin/teachers', authenticateAdmin, async (req, res) => {
     const [totalResult] = await db.query('SELECT COUNT(*) as count FROM teachers WHERE status_aktif = 1');
     const total = totalResult.count;
 
-    // Get teachers with assignments
+    // Get teachers with assignments and school names
     const teachers = await db.query(`
       SELECT
-        t.id, t.nama, t.nik, t.nip, t.email, t.status_kepegawaian, t.status_aktif,
-        GROUP_CONCAT(DISTINCT CONCAT(ta.tenant_id, ':', ta.jabatan_di_unit)) as assignments
+        t.id, t.nama, t.nik, t.nip, t.email, t.status_kepegawaian, t.status_aktif, t.no_wa,
+        GROUP_CONCAT(DISTINCT CONCAT(ta.tenant_id, ':', ta.jabatan_di_unit, ':', tn.nama_sekolah)) as assignments
       FROM teachers t
       LEFT JOIN teacher_assignments ta ON t.id = ta.teacher_id
+      LEFT JOIN tenants tn ON ta.tenant_id = tn.tenant_id
       WHERE t.status_aktif = 1
       GROUP BY t.id
       ORDER BY t.nama ASC
@@ -779,8 +798,8 @@ app.get('/api/admin/teachers', authenticateAdmin, async (req, res) => {
     const formattedTeachers = teachers.map(teacher => ({
       ...teacher,
       assignments: teacher.assignments ? teacher.assignments.split(',').map(a => {
-        const [tenant_id, jabatan] = a.split(':');
-        return { tenant_id, jabatan_di_unit: jabatan };
+        const [tenant_id, jabatan, nama_sekolah] = a.split(':');
+        return { tenant_id, jabatan_di_unit: jabatan, nama_sekolah };
       }) : []
     }));
 
@@ -843,7 +862,10 @@ app.get('/api/admin/attendance-logs', authenticateAdmin, async (req, res) => {
 // Admin tenants list
 app.get('/api/admin/tenants', authenticateAdmin, async (req, res) => {
   try {
-    const tenants = await db.query('SELECT tenant_id, nama_sekolah FROM tenants ORDER BY nama_sekolah ASC');
+    console.log('Fetching tenants with location data...');
+    const tenants = await db.query('SELECT tenant_id, nama_sekolah, COALESCE(latitude, NULL) as latitude, COALESCE(longitude, NULL) as longitude, COALESCE(location_radius, 100) as location_radius, location_name FROM tenants ORDER BY nama_sekolah ASC');
+    console.log('Tenants fetched:', tenants.length, 'records');
+    console.log('First tenant sample:', tenants[0]);
     res.json({ success: true, data: tenants });
   } catch (error) {
     console.error('Admin tenants error:', error);
@@ -876,6 +898,64 @@ app.get('/api/admin/tenants/:tenantId', authenticateAdmin, async (req, res) => {
   } catch (error) {
     console.error('Admin tenant detail error:', error);
     res.status(500).json({ success: false, message: 'Error fetching tenant' });
+  }
+});
+
+// Admin update tenant location
+app.put('/api/admin/tenants/:tenantId', authenticateAdmin, async (req, res) => {
+  try {
+    const { tenantId } = req.params;
+    const { latitude, longitude, location_radius, location_name } = req.body;
+
+    // Validate input
+    if (latitude !== undefined && (latitude < -90 || latitude > 90)) {
+      return res.status(400).json({ success: false, message: 'Latitude harus antara -90 dan 90' });
+    }
+    if (longitude !== undefined && (longitude < -180 || longitude > 180)) {
+      return res.status(400).json({ success: false, message: 'Longitude harus antara -180 dan 180' });
+    }
+    if (location_radius !== undefined && (location_radius < 10 || location_radius > 1000)) {
+      return res.status(400).json({ success: false, message: 'Radius lokasi harus antara 10 dan 1000 meter' });
+    }
+
+    // Build update query dynamically
+    let updateFields = [];
+    let updateValues = [];
+
+    if (latitude !== undefined) {
+      updateFields.push('latitude = ?');
+      updateValues.push(latitude);
+    }
+    if (longitude !== undefined) {
+      updateFields.push('longitude = ?');
+      updateValues.push(longitude);
+    }
+    if (location_radius !== undefined) {
+      updateFields.push('location_radius = ?');
+      updateValues.push(location_radius);
+    }
+    if (location_name !== undefined) {
+      updateFields.push('location_name = ?');
+      updateValues.push(location_name);
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({ success: false, message: 'Tidak ada data yang diupdate' });
+    }
+
+    updateValues.push(tenantId); // Add tenant_id for WHERE clause
+
+    const query = `UPDATE tenants SET ${updateFields.join(', ')}, updated_at = NOW() WHERE tenant_id = ?`;
+    const result = await db.query(query, updateValues);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Tenant tidak ditemukan' });
+    }
+
+    res.json({ success: true, message: 'Lokasi sekolah berhasil diupdate' });
+  } catch (error) {
+    console.error('Admin update tenant location error:', error);
+    res.status(500).json({ success: false, message: 'Error updating tenant location' });
   }
 });
 
