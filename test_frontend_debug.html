@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Frontend Debug</title>
+</head>
+<body>
+    <h1>Testing Admin Dashboard Location Display</h1>
+    <div id="test-output"></div>
+
+    <script>
+        async function testTenantLocations() {
+            const output = document.getElementById('test-output');
+            output.innerHTML = '<p>Testing tenant locations...</p>';
+
+            try {
+                // Test API call
+                const response = await fetch('http://localhost:3000/api/admin/tenants?limit=3', {
+                    headers: {
+                        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTIwLCJ1c2VybmFtZSI6ImFkbWluIiwicm9sZSI6ImFkbWluIiwidGVuYW50X2lkIjoiWVBXSUxVVElNIiwidGltZXN0YW1wIjoiMjAyNi0wNS0wNlQwMzoyNTozNi45NjdaIiwiaWF0IjoxNzc4MDM3OTM2LCJleHAiOjE3NzgwNjY3MzZ9.yEaXsTDSV44E4pic9G8E2F9UiafRqyJgked-fEg1CoA',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    output.innerHTML += `<p style="color: red;">API Error: ${response.status} ${response.statusText}</p>`;
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('API Response:', data);
+
+                output.innerHTML += `<p>API Success: ${data.success}</p>`;
+                output.innerHTML += `<p>Total tenants: ${data.data.length}</p>`;
+
+                // Test template rendering
+                data.data.forEach((tenant, index) => {
+                    console.log(`Tenant ${index + 1}:`, tenant);
+
+                    const latitudeDisplay = tenant.latitude ? parseFloat(tenant.latitude).toFixed(6) : 'Belum diatur';
+                    const longitudeDisplay = tenant.longitude ? parseFloat(tenant.longitude).toFixed(6) : 'Belum diatur';
+                    const radiusDisplay = `${tenant.location_radius || 100}m`;
+
+                    output.innerHTML += `
+                        <div style="border: 1px solid #ccc; padding: 10px; margin: 10px;">
+                            <h3>${tenant.nama_sekolah} (${tenant.tenant_id})</h3>
+                            <p>Latitude: ${latitudeDisplay}</p>
+                            <p>Longitude: ${longitudeDisplay}</p>
+                            <p>Radius: ${radiusDisplay}</p>
+                            <p>Location Name: ${tenant.location_name || 'N/A'}</p>
+                            <p>Raw Latitude: ${tenant.latitude}</p>
+                            <p>Raw Longitude: ${tenant.longitude}</p>
+                        </div>
+                    `;
+                });
+
+            } catch (error) {
+                console.error('Test error:', error);
+                output.innerHTML += `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+
+        // Run test
+        testTenantLocations();
+    </script>
+</body>
+</html>

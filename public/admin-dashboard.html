@@ -1192,7 +1192,15 @@
           document.getElementById('totalSchools').textContent = items.length;
           document.getElementById('configuredLocations').textContent = items.filter(t => t.latitude && t.longitude).length;
 
-          container.innerHTML = items.map(tenant => `
+          console.log('About to render', items.length, 'tenants');
+          container.innerHTML = items.map(tenant => {
+            console.log('Rendering tenant:', tenant.nama_sekolah, {
+              hasLatitude: !!tenant.latitude,
+              hasLongitude: !!tenant.longitude,
+              latitudeValue: tenant.latitude,
+              longitudeValue: tenant.longitude
+            });
+            return `
             <div class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow duration-200">
               <div class="flex items-start justify-between mb-4">
                 <div class="flex-1">
