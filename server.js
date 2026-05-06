@@ -281,7 +281,7 @@ async function sendWhatsAppMessage(number, message) {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      timeout: 5000  // 5 second timeout
+      timeout: 20000  // 5 second timeout
     });
 
     console.log('Response Status:', response.status);
@@ -1620,6 +1620,129 @@ app.get('/', (req, res) => {
 });
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
+
+// Forgot password endpoints
+app.post('/api/forgot-password/send-otp', async (req, res) => {
+  try {
+    const { phoneNumber } = req.body;
+
+    if (!phoneNumber) {
+      return res.status(400).json({ success: false, message: 'Nomor WhatsApp wajib diisi' });
+    }
+
+    // Clean phone number
+    const cleanNumber = phoneNumber.replace(/\D/g, '');
+    if (!cleanNumber.startsWith('62')) {
+      if (cleanNumber.startsWith('0')) {
+        cleanNumber = '62' + cleanNumber.substring(1);
+      } else {
+        cleanNumber = '62' + cleanNumber;
+      }
+    }
+
+    // Check if teacher exists with this phone number
+    const [teacher] = await db.query('SELECT id, nama FROM teachers WHERE no_wa = ? AND status_aktif = 1', [cleanNumber]);
+
+    if (!teacher) {
+      return res.status(404).json({ success: false, message: 'Nomor WhatsApp tidak terdaftar' });
+    }
+
+    // Generate 6-digit OTP
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store OTP temporarily (in production, use Redis or database)
+    global.tempOtps = global.tempOtps || {};
+    global.tempOtps[cleanNumber] = {
+      code: verificationCode,
+      expires: Date.now() + 5 * 60 * 1000, // 5 minutes
+      teacherId: teacher.id
+    };
+
+    // Send WhatsApp message
+    const message = `🔐 *KODE VERIFIKASI - LUPA PASSWORD*
+
+Assalamu'alaikum ${teacher.nama}
+
+Kode verifikasi untuk reset password Anda: *${verificationCode}*
+
+Kode ini berlaku selama 5 menit.
+
+Jika Anda tidak meminta reset password, abaikan pesan ini.
+
+*YPWI Lutim*`;
+
+    const whatsappResult = await sendWhatsAppMessage(cleanNumber, message);
+
+    if (whatsappResult.success) {
+      res.json({
+        success: true,
+        message: 'Kode verifikasi telah dikirim ke WhatsApp Anda',
+        verificationCode: verificationCode // Remove in production
+      });
+    } else {
+      res.status(500).json({ success: false, message: 'Gagal mengirim kode verifikasi' });
+    }
+
+  } catch (error) {
+    console.error('Send OTP error:', error);
+    res.status(500).json({ success: false, message: 'Terjadi kesalahan sistem' });
+  }
+});
+
+app.post('/api/forgot-password/reset', async (req, res) => {
+  try {
+    const { phoneNumber, otpCode, newPassword } = req.body;
+
+    if (!phoneNumber || !otpCode || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Semua field wajib diisi' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password baru minimal 8 karakter' });
+    }
+
+    // Clean phone number
+    const cleanNumber = phoneNumber.replace(/\D/g, '');
+    if (!cleanNumber.startsWith('62')) {
+      if (cleanNumber.startsWith('0')) {
+        cleanNumber = '62' + cleanNumber.substring(1);
+      } else {
+        cleanNumber = '62' + cleanNumber;
+      }
+    }
+
+    // Verify OTP
+    const tempOtp = global.tempOtps?.[cleanNumber];
+    if (!tempOtp || tempOtp.code !== otpCode || Date.now() > tempOtp.expires) {
+      return res.status(400).json({ success: false, message: 'Kode verifikasi tidak valid atau sudah kadaluarsa' });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password in users table
+    const updateResult = await db.query(
+      'UPDATE users SET password = ?, is_default_password = 0 WHERE guru_id = ?',
+      [hashedPassword, tempOtp.teacherId]
+    );
+
+    if (updateResult.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
+    }
+
+    // Clear OTP
+    delete global.tempOtps[cleanNumber];
+
+    res.json({
+      success: true,
+      message: 'Password berhasil direset'
+    });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ success: false, message: 'Terjadi kesalahan sistem' });
+  }
+});
 
 async function startServer() {
   console.log('Starting server...');
