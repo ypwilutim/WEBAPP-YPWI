@@ -490,7 +490,7 @@
                   <div>
                     <h5 class="font-medium text-gray-900">Informasi Aturan</h5>
                     <p class="text-sm text-gray-600 mt-1">
-                      Aturan absensi berlaku berdasarkan prioritas: Aturan sekolah spesifik &rarr; Aturan default sistem.
+                      Aturan absensi berlaku berdasarkan prioritas: Aturan sekolah spesifik → Aturan default sistem.
                       Pastikan tidak ada konflik jadwal antar aturan.
                     </p>
                   </div>

@@ -22,6 +22,18 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const SECRET_KEY = process.env.JWT_SECRET || 'ypwi-secret-key-2026';
 
+// Multer config for selfie uploads
+const selfieStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'selfie/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'selfie-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const selfieUpload = multer({ storage: selfieStorage });
+
 // Environment check
 console.log('🔧 Environment Configuration:');
 console.log('   WHATSAPP_ENDPOINT:', process.env.WHATSAPP_ENDPOINT ? '✅ LOADED' : '❌ MISSING');
@@ -122,7 +134,7 @@ app.use((error, req, res, next) => {
 });
 
 // Configure multer for file uploads
-const storage = multer.diskStorage({
+const teacherStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'public/uploads/');
   },
@@ -132,8 +144,8 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({
-  storage: storage,
+const teacherUpload = multer({
+  storage: teacherStorage,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
     files: 1 // Maximum 1 file
@@ -488,18 +500,31 @@ app.get('/api/test-history', function(req, res) {
 // Dashboard route
 app.get('/api/dashboard', authenticateToken, async (req, res) => {
   try {
-    const attendance = await db.query('SELECT COUNT(*) as total FROM attendance_logs WHERE teacher_id = ?', [req.user.guru_id]);
-    const todayAttendance = await db.query('SELECT jenis FROM attendance_logs WHERE teacher_id = ? AND DATE(waktu_scan) = CURDATE() ORDER BY waktu_scan DESC LIMIT 1', [req.user.guru_id]);
-    const user = await db.query('SELECT * FROM users WHERE id = ?', [req.user.id]);
+    console.log('Dashboard req.user:', req.user);
+    console.log('guru_id value:', req.user.guru_id, 'id value:', req.user.id, 'role:', req.user.role);
+
+    let userQuery, attendanceQuery, todayQuery;
+    if (req.user.role === 'admin') {
+      userQuery = await db.query('SELECT * FROM users WHERE id = ?', [req.user.id]);
+      attendanceQuery = await db.query('SELECT COUNT(*) as total FROM attendance_logs');
+      todayQuery = await db.query('SELECT jenis FROM attendance_logs WHERE DATE(waktu_scan) = CURDATE() ORDER BY waktu_scan DESC LIMIT 1');
+    } else {
+      userQuery = await db.query('SELECT * FROM users WHERE guru_id = ?', [req.user.guru_id]);
+      attendanceQuery = await db.query('SELECT COUNT(*) as total FROM attendance_logs WHERE teacher_id = ?', [req.user.guru_id]);
+      todayQuery = await db.query('SELECT jenis FROM attendance_logs WHERE teacher_id = ? AND DATE(waktu_scan) = CURDATE() ORDER BY waktu_scan DESC LIMIT 1', [req.user.guru_id]);
+    }
+
+    console.log('Dashboard user query result:', userQuery);
+    console.log('User[0]:', userQuery[0]);
 
     res.json({
       success: true,
       data: {
         attendance: {
-          total: attendance[0]?.total || 0,
-          today: todayAttendance[0]?.jenis || null
+          total: attendanceQuery[0]?.total || 0,
+          today: todayQuery[0]?.jenis || null
         },
-        user: user[0]
+        user: userQuery[0]
       }
     });
   } catch (error) {
@@ -509,10 +534,92 @@ app.get('/api/dashboard', authenticateToken, async (req, res) => {
 });
 
 // Attendance route
-app.post('/api/attendance', authenticateToken, async (req, res) => {
+app.post('/api/attendance', authenticateToken, selfieUpload.single('selfie'), async (req, res) => {
   try {
-    const { jenis, metode } = req.body;
+    const { jenis, metode, latitude, longitude, dinas_luar, kegiatan_dinas } = req.body;
     const currentTime = new Date().toTimeString().slice(0, 8);
+    let selfie_url = null;
+    let is_dinas_luar = dinas_luar === 'true' || dinas_luar === true;
+    let tenant_id = req.user.tenant_id; // Default to assigned tenant
+
+    if (req.file) {
+      selfie_url = req.file.path;
+    }
+
+    // Validate location if coordinates provided
+    if (latitude && longitude) {
+      try {
+        const userLat = parseFloat(latitude);
+        const userLng = parseFloat(longitude);
+
+        // Get all units with coordinates
+        const [allUnits] = await db.query(
+          'SELECT tenant_id, nama_sekolah, latitude, longitude, location_radius FROM tenants WHERE latitude IS NOT NULL AND longitude IS NOT NULL'
+        );
+
+        let withinAssigned = false;
+        let withinOther = false;
+        let assignedSchool = null;
+        let otherSchool = null;
+
+        // Check assigned units first
+        const assignedUnits = await db.query(
+          'SELECT t.tenant_id, t.nama_sekolah, t.latitude, t.longitude, t.location_radius FROM tenants t JOIN teacher_assignments ta ON t.tenant_id = ta.tenant_id WHERE ta.teacher_id = ? AND t.latitude IS NOT NULL AND t.longitude IS NOT NULL',
+          [req.user.guru_id]
+        );
+
+        for (const unit of assignedUnits) {
+          const distance = calculateDistance(userLat, userLng, parseFloat(unit.latitude), parseFloat(unit.longitude));
+          const radius = unit.location_radius || 200;
+          if (distance * 1000 <= radius) {
+            withinAssigned = true;
+            assignedSchool = unit;
+            break;
+          }
+        }
+
+        // If not within assigned, check other units
+        if (!withinAssigned) {
+          // Get all units with coordinates
+          const allUnits = await db.query(
+            'SELECT tenant_id, nama_sekolah, latitude, longitude, location_radius FROM tenants WHERE latitude IS NOT NULL AND longitude IS NOT NULL'
+          );
+
+          for (const unit of allUnits) {
+            // Skip assigned units
+            if (assignedUnits.some(a => a.tenant_id === unit.tenant_id)) continue;
+
+            const distance = calculateDistance(userLat, userLng, parseFloat(unit.latitude), parseFloat(unit.longitude));
+            const radius = unit.location_radius || 200;
+            if (distance * 1000 <= radius) {
+              withinOther = true;
+              otherSchool = unit;
+              tenant_id = unit.tenant_id; // Change tenant to the unit where they are
+              is_dinas_luar = true;
+              break;
+            }
+          }
+        }
+
+        console.log(`[LOCATION VALIDATION] User at ${userLat},${userLng}`);
+        if (withinAssigned) {
+          console.log(`[LOCATION VALIDATION] ✅ Within assigned school: ${assignedSchool.nama_sekolah}`);
+        } else if (withinOther) {
+          console.log(`[LOCATION VALIDATION] ✅ Within other school (dinas luar): ${otherSchool.nama_sekolah}`);
+        } else {
+          return res.status(403).json({
+            success: false,
+            message: 'Absensi gagal! Anda berada di luar radius lokasi semua unit sekolah.'
+          });
+        }
+
+      } catch (locationError) {
+        console.error('[LOCATION VALIDATION] Error validating location:', locationError);
+        // Continue with attendance if location validation fails
+      }
+    } else {
+      console.log(`[LOCATION VALIDATION] No GPS coordinates provided`);
+    }
 
     let rules = [];
     try {
@@ -528,8 +635,8 @@ app.post('/api/attendance', authenticateToken, async (req, res) => {
     const status = (rules && rules.length > 0) ? rules[0].status_log : 'terlambat';
 
     const result = await db.query(
-      'INSERT INTO attendance_logs (teacher_id, tenant_id, waktu_scan, jenis, metode, status) VALUES (?, ?, NOW(), ?, ?, ?)',
-      [req.user.guru_id, req.user.tenant_id, jenis, metode || 'scanner', status]
+      'INSERT INTO attendance_logs (teacher_id, tenant_id, waktu_scan, jenis, metode, status, dinas_luar, kegiatan_dinas, selfie_url, latitude, longitude) VALUES (?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, ?)',
+      [req.user.guru_id, tenant_id, jenis, metode || 'scanner', status, is_dinas_luar ? 1 : 0, kegiatan_dinas || null, selfie_url, latitude || null, longitude || null]
     );
 
     // Send WhatsApp notification after successful attendance
@@ -553,7 +660,7 @@ app.post('/api/attendance', authenticateToken, async (req, res) => {
         const statusText = status === 'tepat_waktu' ? 'Tepat Waktu ⏰' :
                           status === 'terlambat' ? 'Terlambat ⏰' : status;
 
-        const content = `🔔 *NOTIFIKASI ABSENSI*
+        let content = `🔔 *NOTIFIKASI ABSENSI*
 
 Absensi Anda telah berhasil dicatat:
 
@@ -561,7 +668,15 @@ Absensi Anda telah berhasil dicatat:
 📍 *Jenis:* ${jenis === 'masuk' ? 'Masuk' : 'Pulang'}
 📊 *Status:* ${statusText}
 📱 *Metode:* ${metode || 'Scanner'}
-🏫 *Unit:* ${req.user.tenant_id}
+🏫 *Unit:* ${tenant_id}`;
+
+        if (is_dinas_luar) {
+          content += `
+🚗 *Dinas Luar:* Ya
+📝 *Kegiatan:* ${kegiatan_dinas || 'Tidak disebutkan'}`;
+        }
+
+        content += `
 
 Terima kasih telah melakukan absensi tepat waktu!`;
 
@@ -1139,7 +1254,7 @@ app.get('/api/admin/teachers/:id', async (req, res) => {
   }
 });
 
-app.put('/api/admin/teachers/:id', upload.single('foto'), async (req, res) => {
+app.put('/api/admin/teachers/:id', teacherUpload.single('foto'), async (req, res) => {
   // Authentication bypassed for profile completion - public access
   const { id } = req.params;
 
@@ -1292,7 +1407,37 @@ app.get('/api/teacher/info', authenticateToken, async (req, res) => {
   }
 });
 
+// Haversine distance calculation function
+function calculateDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c;
+  return distance;
+}
+
 // Unit location detection endpoint
+app.get('/api/units/all', authenticateToken, async (req, res) => {
+  try {
+    const units = await db.query(
+      'SELECT tenant_id, nama_sekolah, latitude, longitude, location_radius FROM tenants WHERE latitude IS NOT NULL AND longitude IS NOT NULL'
+    );
+
+    res.json({
+      success: true,
+      units: units
+    });
+  } catch (error) {
+    console.error('Error fetching all units:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch units' });
+  }
+});
+
 app.get('/api/units/nearby', authenticateToken, async (req, res) => {
   try {
     const { lat, lng } = req.query;
@@ -1301,37 +1446,51 @@ app.get('/api/units/nearby', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Latitude and longitude required' });
     }
 
-    // Get user's assigned units
-    const userUnits = await db.query(
-      'SELECT DISTINCT t.tenant_id, t.nama_sekolah FROM tenants t JOIN teacher_assignments ta ON t.tenant_id = ta.tenant_id WHERE ta.teacher_id = ?',
-      [req.user.guru_id]
+    const userLat = parseFloat(lat);
+    const userLng = parseFloat(lng);
+
+    // Get ALL units with coordinates to find the nearest one
+    const allUnits = await db.query(
+      'SELECT tenant_id, nama_sekolah, latitude, longitude FROM tenants WHERE latitude IS NOT NULL AND longitude IS NOT NULL'
     );
 
-    // For now, simulate distance calculation (will need actual coordinates in tenants table)
-    const unitsWithDistance = userUnits.map((unit, index) => ({
+    if (allUnits.length === 0) {
+      return res.json({
+        success: true,
+        currentLocation: { lat: userLat, lng: userLng },
+        units: [],
+        nearestUnit: null
+      });
+    }
+
+    // Calculate distances for all units
+    const unitsWithDistance = allUnits.map(unit => ({
       tenant_id: unit.tenant_id,
       nama_sekolah: unit.nama_sekolah,
-      distance: index === 0 ? 0.5 : Math.random() * 10 + 1, // First unit as nearest
-      isNearest: index === 0
+      latitude: unit.latitude,
+      longitude: unit.longitude,
+      location_radius: unit.location_radius,
+      distance: calculateDistance(userLat, userLng, parseFloat(unit.latitude), parseFloat(unit.longitude)),
+      isNearest: false
     }));
 
     // Sort by distance
     unitsWithDistance.sort((a, b) => a.distance - b.distance);
 
     // Mark actual nearest
-    unitsWithDistance.forEach((unit, index) => {
-      unit.isNearest = index === 0;
-    });
+    if (unitsWithDistance.length > 0) {
+      unitsWithDistance[0].isNearest = true;
+    }
 
     res.json({
       success: true,
-      currentLocation: { lat: parseFloat(lat), lng: parseFloat(lng) },
+      currentLocation: { lat: userLat, lng: userLng },
       units: unitsWithDistance,
       nearestUnit: unitsWithDistance.find(u => u.isNearest) || null
     });
   } catch (error) {
-    console.error('[SERVER ERROR]', error.message);
-    res.status(500).json({ success: false, message: 'Error detecting nearby units' });
+    console.error('Error fetching nearby units:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch nearby units' });
   }
 });
 
@@ -1343,6 +1502,35 @@ app.get('/api/tenants', async (req, res) => {
   } catch (error) {
     console.error('[SERVER ERROR]', error.message);
     res.status(500).json({ success: false, message: 'Error fetching tenants' });
+  }
+});
+
+// Get tenant by ID
+app.get('/api/tenants/:id', authenticateToken, async (req, res) => {
+  try {
+    const [tenant] = await db.query('SELECT * FROM tenants WHERE tenant_id = ?', [req.params.id]);
+    if (tenant) {
+      res.json({ success: true, tenant: tenant });
+    } else {
+      res.status(404).json({ success: false, message: 'Tenant not found' });
+    }
+  } catch (error) {
+    console.error('[SERVER ERROR]', error.message);
+    res.status(500).json({ success: false, message: 'Error fetching tenant' });
+  }
+});
+
+// Get attendance history for teacher
+app.get('/api/attendance-history', authenticateToken, async (req, res) => {
+  try {
+    const attendance = await db.query(
+      'SELECT jenis, waktu_scan, status FROM attendance_logs WHERE teacher_id = ? ORDER BY waktu_scan DESC LIMIT 10',
+      [req.user.guru_id]
+    );
+    res.json({ success: true, data: attendance });
+  } catch (error) {
+    console.error('[SERVER ERROR]', error.message);
+    res.status(500).json({ success: false, message: 'Error fetching attendance history' });
   }
 });
 

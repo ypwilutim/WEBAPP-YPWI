@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Test</title>
+</head>
+<body>
+    <h1>Testing Script Execution</h1>
+    <div id="result"></div>
+
+    <script>
+        const result = document.getElementById('result');
+        result.innerHTML = '<p>Testing basic script execution...</p>';
+
+        // Test async/await
+        async function testAsync() {
+            try {
+                result.innerHTML += '<p>✅ Async function works</p>';
+
+                // Test await
+                await new Promise(resolve => setTimeout(resolve, 100));
+                result.innerHTML += '<p>✅ Await works</p>';
+
+            } catch (e) {
+                result.innerHTML += `<p>❌ Error: ${e.message}</p>`;
+            }
+        }
+
+        testAsync();
+    </script>
+</body>
+</html>

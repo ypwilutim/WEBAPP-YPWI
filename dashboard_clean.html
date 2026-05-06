@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - YPWI Absensi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-4xl mx-auto p-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Dashboard Admin - Clean Version</h1>
+
+        <!-- Location Info -->
+        <div id="locationInfo" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            Initializing GPS system...
+        </div>
+
+        <!-- Attendance Buttons -->
+        <div class="mb-6">
+            <button id="checkInBtn" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                <i class="fas fa-sign-in-alt mr-2"></i>Absen Masuk
+            </button>
+            <button id="checkOutBtn" class="ml-4 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed">
+                <i class="fas fa-sign-out-alt mr-2"></i>Absen Pulang
+            </button>
+        </div>
+
+        <!-- Status -->
+        <div id="status" class="p-4 bg-gray-100 rounded-lg">
+            Ready to test GPS functionality
+        </div>
+    </div>
+
+    <script type="module">
+        console.log('Clean dashboard loaded successfully');
+
+        // Global variables
+        let currentLocation = null;
+        let currentUser = { guru_id: 1 }; // Mock user
+        let authToken = 'mock-token'; // Mock token
+
+        // DOM elements
+        const locationInfo = document.getElementById('locationInfo');
+        const checkInBtn = document.getElementById('checkInBtn');
+        const checkOutBtn = document.getElementById('checkOutBtn');
+        const statusDiv = document.getElementById('status');
+
+        // Utility functions
+        function updateLocationDisplay(success, message) {
+            locationInfo.className = success ?
+                'mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800' :
+                'mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800';
+            locationInfo.textContent = message;
+        }
+
+        function updateStatus(message) {
+            statusDiv.textContent = message;
+            console.log('Status:', message);
+        }
+
+        // GPS and radius validation
+        function updateAttendanceButtonsState() {
+            if (!currentLocation) {
+                checkInBtn.disabled = true;
+                checkOutBtn.disabled = true;
+                updateLocationDisplay(false, '❌ Lokasi tidak tersedia. Aktifkan GPS untuk absensi.');
+                updateStatus('GPS not available');
+                return;
+            }
+
+            // Mock radius validation
+            validateLocationRadius(currentLocation.latitude, currentLocation.longitude)
+                .then(result => {
+                    if (result.withinRadius) {
+                        checkInBtn.disabled = false;
+                        checkOutBtn.disabled = false;
+                        updateLocationDisplay(true, `✅ Lokasi valid - Dalam radius ${result.radius}m dari ${result.schoolName}`);
+                        updateStatus(`Within radius - ${result.distance.toFixed(0)}m from school`);
+                    } else {
+                        checkInBtn.disabled = true;
+                        checkOutBtn.disabled = true;
+                        updateLocationDisplay(false, `❌ Di luar radius! Jarak ${result.distance.toFixed(0)}m dari ${result.schoolName} (max ${result.radius}m)`);
+                        updateStatus(`Outside radius - ${result.distance.toFixed(0)}m from school`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Radius validation error:', error);
+                    checkInBtn.disabled = false;
+                    checkOutBtn.disabled = false;
+                    updateLocationDisplay(false, '⚠️ Gagal memvalidasi lokasi. Absensi tetap diizinkan.');
+                    updateStatus('Validation error - attendance allowed');
+                });
+        }
+
+        async function validateLocationRadius(userLat, userLng) {
+            try {
+                // Mock validation for testing
+                const schoolLat = -2.64552;
+                const schoolLng = 121.127793;
+                const radius = 200;
+
+                const distance = calculateDistance(userLat, userLng, schoolLat, schoolLng);
+
+                return {
+                    withinRadius: distance <= radius,
+                    distance: distance,
+                    radius: radius,
+                    schoolName: 'SDIT WAHDAH ISLAMIYAH'
+                };
+            } catch (error) {
+                console.error('Validation error:', error);
+                return {
+                    withinRadius: true,
+                    distance: 0,
+                    radius: 200,
+                    schoolName: 'Unknown'
+                };
+            }
+        }
+
+        function calculateDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371; // Earth's radius in kilometers
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a =
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c;
+            return distance * 1000; // Return in meters
+        }
+
+        // GPS location handling
+        function requestLocationPermission() {
+            updateStatus('Requesting GPS permission...');
+            console.log('Requesting location permission...');
+
+            if ('geolocation' in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    async function(position) {
+                        console.log('GPS position received');
+                        currentLocation = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        };
+
+                        updateLocationDisplay(true, `GPS berhasil! Lokasi: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)} (akurasi: ${Math.round(position.coords.accuracy)}m)`);
+
+                        // Test async functionality
+                        console.log('Testing async operations...');
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        console.log('Async test completed');
+
+                        updateAttendanceButtonsState();
+                        updateStatus('GPS ready - testing radius validation');
+                    },
+                    function(error) {
+                        console.error('GPS error:', error);
+                        updateLocationDisplay(false, `GPS Error: ${error.message}`);
+                        updateStatus(`GPS error: ${error.message}`);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 30000
+                    }
+                );
+            } else {
+                updateLocationDisplay(false, 'Browser tidak mendukung GPS');
+                updateStatus('GPS not supported');
+            }
+        }
+
+        // Event listeners
+        checkInBtn.addEventListener('click', function() {
+            if (currentLocation) {
+                updateStatus(`Check In clicked - Location: ${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`);
+            } else {
+                updateStatus('Check In clicked - No location available');
+            }
+        });
+
+        checkOutBtn.addEventListener('click', function() {
+            if (currentLocation) {
+                updateStatus(`Check Out clicked - Location: ${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}`);
+            } else {
+                updateStatus('Check Out clicked - No location available');
+            }
+        });
+
+        // Initialize
+        updateLocationDisplay(false, 'Klik untuk test GPS functionality');
+        updateStatus('Clean dashboard initialized - click to test GPS');
+
+        // Auto-test GPS after 2 seconds
+        setTimeout(() => {
+            console.log('Auto-testing GPS...');
+            requestLocationPermission();
+        }, 2000);
+    </script>
+</body>
+</html>

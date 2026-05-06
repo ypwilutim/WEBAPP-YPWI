@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Admin - YPWI Absensi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Force cache refresh -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-4xl mx-auto p-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Dashboard Admin - Fixed Version (2026-05-06)</h1>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">System Status</h2>
+            <div id="system-status" class="space-y-2">
+                <p>🔄 Initializing...</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm border border-gray-100 p-6">
+            <h2 class="text-xl font-semibold mb-4">Test Information</h2>
+            <div class="bg-gray-50 rounded-lg p-4">
+                <div class="flex items-start space-x-3">
+                    <i class="fas fa-info-circle text-blue-500 mt-0.5"></i>
+                    <div>
+                        <h5 class="font-medium text-gray-900">System Information</h5>
+                        <p class="text-sm text-gray-600 mt-1">
+                            Dashboard berhasil dimuat tanpa error JavaScript.
+                            Jika ada masalah, silakan refresh halaman atau clear browser cache.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        console.log('Fixed dashboard loaded successfully - version 2026-05-06');
+
+        const statusDiv = document.getElementById('system-status');
+        statusDiv.innerHTML = '<p>✅ Dashboard loaded successfully</p>';
+
+        // Test async functionality
+        async function testSystem() {
+            try {
+                statusDiv.innerHTML += '<p>🧪 Testing async functionality...</p>';
+
+                // Test await
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                statusDiv.innerHTML += '<p>✅ Async/await working perfectly</p>';
+                console.log('Async test passed');
+
+                // Test fetch
+                statusDiv.innerHTML += '<p>🌐 Testing API connectivity...</p>';
+                const response = await fetch('/api/search/teachers?limit=1');
+                if (response.ok) {
+                    const data = await response.json();
+                    statusDiv.innerHTML += `<p>✅ API working - found ${data.data.length} teachers</p>`;
+                } else {
+                    statusDiv.innerHTML += `<p>⚠️ API returned status ${response.status}</p>`;
+                }
+
+            } catch (error) {
+                statusDiv.innerHTML += `<p>❌ Error: ${error.message}</p>`;
+                console.error('System test failed:', error);
+            }
+        }
+
+        // Run system test
+        setTimeout(testSystem, 500);
+
+        // Monitor for JavaScript errors
+        window.addEventListener('error', function(e) {
+            statusDiv.innerHTML += `<p style="color: red;">🚨 JS Error: ${e.message} at line ${e.lineno}</p>`;
+            console.error('JavaScript error detected:', e);
+        });
+
+        statusDiv.innerHTML += '<p>🎯 System monitoring active</p>';
+    </script>
+</body>
+</html>

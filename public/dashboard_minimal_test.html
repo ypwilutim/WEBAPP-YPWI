@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Minimal Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-4xl mx-auto p-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Dashboard Minimal Test</h1>
+
+        <div id="locationInfo" class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            Initializing...
+        </div>
+
+        <button id="testBtn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+            Test GPS & Location
+        </button>
+
+        <div id="result" class="mt-4 p-4 bg-gray-100 rounded"></div>
+    </div>
+
+    <script type="module">
+        console.log('Dashboard minimal test loaded');
+
+        let currentLocation = null;
+
+        function updateLocationDisplay(success, message) {
+            const locationInfo = document.getElementById('locationInfo');
+            locationInfo.className = success ?
+                'mb-4 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800' :
+                'mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-800';
+            locationInfo.textContent = message;
+        }
+
+        function updateAttendanceButtonsState() {
+            const result = document.getElementById('result');
+            if (!currentLocation) {
+                result.innerHTML = '<p>❌ No location available</p>';
+                return;
+            }
+
+            result.innerHTML = `
+                <p>✅ Location available: ${currentLocation.latitude.toFixed(6)}, ${currentLocation.longitude.toFixed(6)}</p>
+                <p>Status: GPS working correctly</p>
+            `;
+        }
+
+        async function validateLocationRadius(userLat, userLng) {
+            console.log('Validating location radius...');
+            // Mock validation
+            return {
+                withinRadius: true,
+                distance: 50,
+                radius: 200,
+                schoolName: 'Test School'
+            };
+        }
+
+        function calculateDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a =
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c;
+            return distance;
+        }
+
+        async function detectNearbyUnits(lat, lng) {
+            console.log('Detecting nearby units...');
+            // Mock API call
+            return { success: true, nearestUnit: { nama_sekolah: 'Test School' } };
+        }
+
+        async function requestLocationPermission() {
+            console.log('Requesting location permission...');
+
+            if ('geolocation' in navigator) {
+                updateLocationDisplay(false, 'Requesting GPS permission...');
+
+                try {
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 30000
+                        });
+                    });
+
+                    console.log('GPS position received successfully');
+                    currentLocation = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy
+                    };
+
+                    updateLocationDisplay(true, `GPS berhasil! Lokasi: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)} (akurasi: ${Math.round(position.coords.accuracy)}m)`);
+
+                    // Test async operations
+                    await detectNearbyUnits(position.coords.latitude, position.coords.longitude);
+                    console.log('Nearby units detection completed');
+
+                    updateAttendanceButtonsState();
+
+                } catch (error) {
+                    console.error('GPS error:', error);
+                    updateLocationDisplay(false, `GPS Error: ${error.message}`);
+                }
+            } else {
+                updateLocationDisplay(false, 'Browser tidak mendukung GPS');
+            }
+        }
+
+        // Initialize
+        document.getElementById('testBtn').addEventListener('click', requestLocationPermission);
+        updateLocationDisplay(false, 'Klik tombol "Test GPS & Location" untuk test fungsionalitas');
+        console.log('Dashboard minimal test initialized');
+    </script>
+</body>
+</html>
