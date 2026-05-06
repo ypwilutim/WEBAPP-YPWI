@@ -60,16 +60,13 @@
 
     let allTeachers = [];
 
-    async function fetchTeachers() {
+    async function fetchTeachers(searchTerm = '') {
       try {
-        const response = await fetch('/api/admin/teachers');
+        const url = searchTerm ?
+          `/api/search/teachers?q=${encodeURIComponent(searchTerm)}` :
+          '/api/search/teachers';
 
-        if (response.status === 401 || response.status === 403) {
-          localStorage.clear();
-          window.location.replace('login.html');
-          return;
-        }
-
+        const response = await fetch(url);
         const res = await response.json();
 
         if (res.success) {
@@ -78,6 +75,14 @@
         }
       } catch (error) {
         console.error('Teachers fetch error:', error);
+        // Show error message to user
+        const container = document.getElementById('teachersList');
+        container.innerHTML = `
+          <div class="text-center py-12 text-red-500">
+            <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
+            <p>Terjadi kesalahan saat memuat data. Silakan coba lagi.</p>
+          </div>
+        `;
       }
     }
 
@@ -103,15 +108,23 @@
             <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
               <i class="fas fa-user text-blue-600"></i>
             </div>
-            <div>
+            <div class="flex-1">
               <h3 class="font-medium text-gray-900">${teacher.nama || '-'}</h3>
               <p class="text-sm text-gray-600">NIP: ${teacher.nip || '-'} | NIK: ${teacher.nik || '-'}</p>
+              ${teacher.assignments && teacher.assignments.length > 0 ?
+                `<p class="text-xs text-blue-600 mt-1">🏫 ${teacher.assignments.map(a => a.nama_sekolah).join(', ')}</p>` :
+                '<p class="text-xs text-gray-500 mt-1">Belum ditugaskan ke sekolah</p>'}
             </div>
           </div>
           <div class="flex items-center space-x-2">
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${teacher.status_aktif ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-              ${teacher.status_aktif ? 'Aktif' : 'Nonaktif'}
-            </span>
+            <div class="flex flex-col items-end space-y-1">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${teacher.has_user ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}">
+                ${teacher.has_user ? 'Sudah Punya Akun' : 'Belum Punya Akun'}
+              </span>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${teacher.status_aktif ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                ${teacher.status_aktif ? 'Aktif' : 'Nonaktif'}
+              </span>
+            </div>
             <i class="fas fa-chevron-right text-gray-400"></i>
           </div>
         </div>
@@ -127,23 +140,32 @@
 
     function selectTeacher(teacherId) {
       const teacher = allTeachers.find(t => t.id == teacherId);
-      if (teacher && teacher.has_user && teacher.email) {
-        window.location.href = `login.html?email=${encodeURIComponent(teacher.email)}`;
-      } else {
-        window.location.href = `complete-profile.html?teacher_id=${teacherId}`;
+      if (teacher) {
+        if (teacher.has_user && teacher.email) {
+          // Guru sudah punya akun, arahkan ke login
+          window.location.href = `login.html?email=${encodeURIComponent(teacher.email)}`;
+        } else {
+          // Guru belum punya akun, arahkan ke complete profile
+          window.location.href = `complete-profile.html?teacher_id=${teacherId}`;
+        }
       }
     }
 
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
-      fetchTeachers();
+      fetchTeachers(); // Load all teachers initially
 
       const searchInput = document.getElementById('searchInput');
       searchInput.addEventListener('input', (e) => {
         const searchTerm = e.target.value.trim();
-        if (searchTerm.length === 0) {
-          displayTeachers(allTeachers);
+        if (searchTerm.length >= 2) {
+          // Search from server when 2+ characters
+          fetchTeachers(searchTerm);
+        } else if (searchTerm.length === 0) {
+          // Show all teachers when search is cleared
+          fetchTeachers();
         } else {
+          // Filter locally for short terms
           filterTeachers(searchTerm);
         }
       });
