@@ -1192,7 +1192,6 @@
           document.getElementById('totalSchools').textContent = items.length;
           document.getElementById('configuredLocations').textContent = items.filter(t => t.latitude && t.longitude).length;
 
-          console.log('Rendering tenant:', tenant.nama_sekolah, 'lat:', tenant.latitude, 'lng:', tenant.longitude);
           container.innerHTML = items.map(tenant => `
             <div class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow duration-200">
               <div class="flex items-start justify-between mb-4">
@@ -1251,7 +1250,7 @@
                 </div>
               </div>
             </div>
-          `).join('');
+          `;}).join('');
 
           // Attach event listeners to the newly created buttons
           attachLocationButtonListeners();
