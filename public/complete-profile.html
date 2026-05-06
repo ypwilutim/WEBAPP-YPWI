@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lengkapi Profil - YPWI Absensi</title>
+  <title>Lengkapi Profil - YPWI Lutim</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
   <link href="styles.css" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -120,7 +120,7 @@
 
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Penempatan di Unit Sekolah <span class="text-red-500">*</span></label>
-                <button type="button" onclick="addAssignment()" class="w-full py-3 px-4 bg-primary/10 text-primary border-2 border-dashed border-primary/30 rounded-xl font-bold hover:bg-primary/20 transition flex items-center justify-center gap-2">
+                <button type="button" id="addAssignmentBtn" class="w-full py-3 px-4 bg-primary/10 text-primary border-2 border-dashed border-primary/30 rounded-xl font-bold hover:bg-primary/20 transition flex items-center justify-center gap-2">
                   <i class="bi bi-plus-circle"></i> Tambah Penempatan Unit
                 </button>
                 <div id="assignments-container" class="mt-4 overflow-hidden border border-gray-200 rounded-xl shadow-inner">
@@ -140,8 +140,8 @@
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-2">Upload Pas Foto</label>
                 <div class="flex items-center gap-4 bg-gray-50 border border-gray-200 p-4 rounded-2xl">
-                  <div class="border-2 border-dashed border-gray-300 rounded-xl p-3 text-center flex-1 hover:border-primary transition cursor-pointer" onclick="document.getElementById('foto').click()">
-                    <input type="file" class="hidden" id="foto" name="foto" accept="image/*" onchange="previewPhoto(this)">
+                  <div class="border-2 border-dashed border-gray-300 rounded-xl p-3 text-center flex-1 hover:border-primary transition cursor-pointer" id="photoUploadArea">
+                    <input type="file" class="hidden" id="foto" name="foto" accept="image/*">
                     <i class="bi bi-camera-fill text-primary text-3xl mb-2"></i>
                     <p class="text-gray-700 font-medium text-sm mb-1">Klik untuk upload foto</p>
                   </div>
@@ -205,8 +205,8 @@
       </div>
 
       <div class="flex items-center justify-end gap-3 mt-8">
-        <button type="button" onclick="closeAssignmentModal()" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition">Batal</button>
-        <button type="button" onclick="saveAssignment()" class="px-5 py-2.5 bg-[#066e3a] text-white rounded-xl font-bold hover:bg-[#066e3a]/90 transition flex items-center gap-1.5">
+        <button type="button" id="closeAssignmentBtn" class="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition">Batal</button>
+        <button type="button" id="saveAssignmentBtn" class="px-5 py-2.5 bg-[#066e3a] text-white rounded-xl font-bold hover:bg-[#066e3a]/90 transition flex items-center gap-1.5">
           <i class="bi bi-check-circle"></i> Tambahkan
         </button>
       </div>
@@ -250,7 +250,9 @@
           if (res.success && res.data) {
             const teacher = res.data;
             populateForm(teacher);
-            displayAssignments(teacher.assignments || []);
+            // Load existing assignments into local storage
+            localAssignments = teacher.assignments || [];
+            displayAssignments(localAssignments);
           }
         }
       } catch (error) {
@@ -260,7 +262,7 @@
 
     async function fetchTenants() {
       try {
-        const response = await fetch('/api/admin/tenants');
+        const response = await fetch('/api/tenants');
         if (response.ok) {
           const res = await response.json();
           if (res.success) {
@@ -303,6 +305,7 @@
       setValue('status_kepegawaian', teacher.status_kepegawaian);
       setValue('tmt', teacher.tmt);
       setValue('status_aktif', teacher.status_aktif);
+      setValue('link_foto', teacher.link_foto);
 
       if (teacher.link_foto) {
         document.getElementById('photo-preview').src = teacher.link_foto;
@@ -311,14 +314,22 @@
       }
     }
 
+    // Store assignments locally (not in database until final submit)
+    let localAssignments = [];
+
     function displayAssignments(assignments) {
+      // Load existing assignments from database
+      if (assignments && assignments.length > 0) {
+        localAssignments = [...assignments];
+      }
+
       const tbody = document.getElementById('assignments-table-body');
-      tbody.innerHTML = assignments.map(assignment => `
+      tbody.innerHTML = localAssignments.map((assignment, index) => `
         <tr>
           <td class="px-4 py-3">${assignment.tenant_id}</td>
           <td class="px-4 py-3">${assignment.jabatan_di_unit}</td>
           <td class="px-4 py-3 text-center">
-            <button onclick="deleteAssignment('${assignment.tenant_id}', '${assignment.jabatan_di_unit}')" class="text-red-600 hover:text-red-800">
+            <button data-index="${index}" data-action="remove-assignment" class="text-red-600 hover:text-red-800 remove-assignment-btn">
               <i class="bi bi-trash"></i>
             </button>
           </td>
@@ -327,31 +338,113 @@
     }
 
     const form = document.getElementById('profileForm');
+    // Form validation functions
+    function validateEmail(email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    }
+
+    function validateNIK(nik) {
+      const nikRegex = /^\d{16}$/;
+      return nikRegex.test(nik);
+    }
+
+    function validatePhone(phone) {
+      // Indonesian phone number format: +62/62/0 followed by 8-12 digits
+      const phoneRegex = /^(\+62|62|0)[8-9][0-9]{7,11}$/;
+      return phoneRegex.test(phone.replace(/\s+/g, ''));
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+
+      // Client-side validation
+      const email = document.getElementById('email').value.trim();
+      const nik = document.getElementById('nik').value.trim();
+      const noWa = document.getElementById('no_wa').value.trim();
+
+      if (!validateNIK(nik)) {
+        Swal.fire('Error', 'NIK harus terdiri dari 16 digit angka.', 'error');
+        return;
+      }
+
+      if (email && !validateEmail(email)) {
+        Swal.fire('Error', 'Format email tidak valid.', 'error');
+        return;
+      }
+
+      if (noWa && !validatePhone(noWa)) {
+        Swal.fire('Error', 'Format nomor WhatsApp tidak valid. Gunakan format Indonesia (08xxxxxxxxx).', 'error');
+        return;
+      }
+
       const submitBtn = form.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<div class="inline-block animate-spin rounded-full h-5 w-5 border-4 border-white border-t-transparent mr-2"></div>Menyimpan...';
 
       try {
         const formData = new FormData(form);
-        const data = Object.fromEntries(formData);
 
-
+        // Add assignments from local storage as JSON string to form data
+        formData.append('assignments_json', JSON.stringify(localAssignments));
 
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        const response = await fetch(`/api/admin/teachers/${data.teacherId}`, {
+        const response = await fetch(`/api/admin/teachers/${formData.get('teacherId')}`, {
           method: 'PUT',
-          headers: { ...headers, 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
+          headers: headers,
+          body: formData
         });
 
         if (response.ok) {
+          // Update profile completion status using public endpoint
+          await fetch(`/api/profile-complete/${teacherId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+
+          // Send WhatsApp notification
+          try {
+            const noWa = document.getElementById('no_wa').value.trim();
+            const nama = document.getElementById('nama').value.trim();
+            const jenisKelamin = document.getElementById('jenis_kelamin').value;
+            const email = document.getElementById('email').value.trim();
+
+            if (noWa && nama && email) {
+              const content = `Selamat! Profil Anda di Sistem YPWI Lutim telah berhasil dilengkapi.
+
+Anda sekarang dapat login menggunakan:
+📧 Email: ${email}
+🔑 Password: ypwi123 (segera ganti setelah login pertama)
+
+Silakan login dan ubah password default Anda untuk keamanan.`;
+
+              // Send WhatsApp in background (don't wait for response)
+              fetch('/api/send-whatsapp-public', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  number: noWa,
+                  message: content,
+                  type: 'profile_completed',
+                  nama: nama,
+                  jenis_kelamin: jenisKelamin,
+                  teacherId: teacherId
+                })
+              }).catch(err => console.log('WhatsApp notification failed:', err));
+            }
+          } catch (waError) {
+            console.log('WhatsApp notification error:', waError);
+          }
+
           Swal.fire({
             title: 'Berhasil!',
-            text: 'Profil berhasil diperbarui!',
+            text: 'Profil berhasil diperbarui! Akun login telah dibuat otomatis.',
             icon: 'success',
-            timer: 2000,
+            timer: 3000,
             timerProgressBar: true,
             showConfirmButton: false
           }).then(() => {
@@ -393,7 +486,7 @@
       document.getElementById('assignmentJabatan').value = '';
     }
 
-    async function saveAssignment() {
+    function saveAssignment() {
       const tenantId = document.getElementById('assignmentUnit').value;
       const jabatan = document.getElementById('assignmentJabatan').value;
 
@@ -401,44 +494,39 @@
         alert('Pilih Unit Sekolah dan Jabatan');
         return;
       }
-      try {
-        const headers = token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
-        const response = await fetch(`/api/admin/teachers/${teacherId}/assignments`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ tenant_id: tenantId, jabatan_di_unit: jabatan })
-        });
 
-        if (response.ok) {
-          closeAssignmentModal();
-          fetchTeacherData(); // Refresh data
-        } else {
-          alert('Gagal menambah penugasan');
-        }
-      } catch (error) {
-        console.error('Error adding assignment:', error);
+      // Check if assignment already exists locally
+      const exists = localAssignments.some(a => a.tenant_id === tenantId && a.jabatan_di_unit === jabatan);
+      if (exists) {
+        alert('Penugasan ini sudah ada');
+        return;
       }
+
+      // Add to local assignments array
+      localAssignments.push({
+        tenant_id: tenantId,
+        jabatan_di_unit: jabatan
+      });
+
+      // Refresh display
+      displayAssignments();
+
+      // Close modal
+      closeAssignmentModal();
+
+      // Clear form
+      document.getElementById('assignmentUnit').value = '';
+      document.getElementById('assignmentJabatan').value = '';
     }
 
-    async function deleteAssignment(tenantId, jabatan) {
+    function removeAssignment(index) {
       if (!confirm('Hapus penugasan ini?')) return;
 
-      try {
-        const headers = token ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
-        const response = await fetch(`/api/admin/teachers/${teacherId}/assignments`, {
-          method: 'DELETE',
-          headers,
-          body: JSON.stringify({ tenant_id: tenantId, jabatan_di_unit: jabatan })
-        });
+      // Remove from local assignments array
+      localAssignments.splice(index, 1);
 
-        if (response.ok) {
-          fetchTeacherData(); // Refresh data
-        } else {
-          alert('Gagal menghapus penugasan');
-        }
-      } catch (error) {
-        console.error('Error deleting assignment:', error);
-      }
+      // Refresh display
+      displayAssignments();
     }
 
     // Photo preview
@@ -454,6 +542,35 @@
         reader.readAsDataURL(file);
       }
     }
+
+    // Event listeners for CSP compliance
+    document.addEventListener('DOMContentLoaded', function() {
+      // Add assignment button
+      document.getElementById('addAssignmentBtn')?.addEventListener('click', addAssignment);
+
+      // Photo upload area
+      document.getElementById('photoUploadArea')?.addEventListener('click', function() {
+        document.getElementById('foto').click();
+      });
+
+      // Photo input change
+      document.getElementById('foto')?.addEventListener('change', function(e) {
+        previewPhoto(e.target);
+      });
+
+      // Assignment modal buttons
+      document.getElementById('closeAssignmentBtn')?.addEventListener('click', closeAssignmentModal);
+      document.getElementById('saveAssignmentBtn')?.addEventListener('click', saveAssignment);
+
+      // Remove assignment buttons (event delegation)
+      document.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-assignment-btn')) {
+          const btn = e.target.closest('.remove-assignment-btn');
+          const index = parseInt(btn.getAttribute('data-index'));
+          removeAssignment(index);
+        }
+      });
+    });
   </script>
 </body>
 </html>

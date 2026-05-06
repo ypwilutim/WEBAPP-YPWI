@@ -1,0 +1,3 @@
+@echo off
+echo Starting YPWI Lutim Server for testing...
+node server.js

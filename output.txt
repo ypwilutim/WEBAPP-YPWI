@@ -1,0 +1,26 @@
+◇ injected env (10) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+Loading environment variables...
+WHATSAPP_ENDPOINT: LOADED
+WHATSAPP_DEVICE_ID: LOADED
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
+🔧 Environment Configuration:
+   WHATSAPP_ENDPOINT: ✅ LOADED
+   WHATSAPP_DEVICE_ID: ✅ LOADED
+   JWT_SECRET: ✅ LOADED
+   DB_HOST: ✅ LOADED
+   PORT: 3000
+
+Starting server...
+Initializing database connection...
+Pool created, getting connection...
+Database terhubung: ypwi_absensi
+Connection released, database initialized
+Database initialized, starting server
+Inserting sample data...
+Sample tenant inserted
+Sample attendance rules inserted
+Found 222 active teachers and 232 assignments in database
+Sample data inserted successfully
+🚀 Server YPWI Lutim berjalan di http://localhost:3000
+🔐 Login endpoint: POST /api/login
+📊 Dashboard endpoint: GET /api/dashboard (protected)

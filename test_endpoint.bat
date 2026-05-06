@@ -1,0 +1,6 @@
+@echo off
+echo Testing admin endpoint...
+curl -X GET "http://localhost:3000/api/admin/test" -H "Content-Type: application/json"
+echo.
+echo Press any key to continue...
+pause >nul

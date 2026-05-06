@@ -19,14 +19,18 @@ let pool;
 
 const initializeDatabase = async () => {
   try {
+    console.log('Initializing database connection...');
     pool = mysql.createPool(dbConfig);
+    console.log('Pool created, getting connection...');
     const connection = await pool.getConnection();
     console.log('Database terhubung:', dbConfig.database);
     connection.release();
+    console.log('Connection released, database initialized');
     return pool;
   } catch (error) {
     console.error('Gagal terhubung database:', error.message);
-    process.exit(1);
+    console.error('DB Config:', { ...dbConfig, password: '[HIDDEN]' });
+    throw error;
   }
 };
 

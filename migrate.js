@@ -88,12 +88,12 @@ const migrateTeachers = async () => {
                     let nipFinal = r.NIY || r.NIP || ("BELUM-" + Math.floor(100000 + Math.random() * 900000));
                     
                     const [res] = await conn.query(
-                        `INSERT INTO teachers(nama, nik, tempat_lahir, tanggal_lahir, jenis_kelamin, alamat, no_wa, email, sebagai, status_kepegawaian, tmt, nip, link_foto, status_aktif) 
+                        `INSERT INTO teachers(nama, nik, tempat_lahir, tanggal_lahir, jenis_kelamin, alamat, no_wa, email, status_kepegawaian, tmt, nip, link_foto, status_aktif)
                          VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,1)`,
                         [
-                            r.Nama, nikClean, r.Tempat_Lahir, r.Tanggal_Lahir, 
-                            r.Jenis_Kelamin === 'Laki-laki' || r.Jenis_Kelamin === 'L' ? 'L' : 'P', 
-                            r.Alamat, r.No_WA, r.Email, r.Jabatan, r.Status_Kepegawaian, 
+                            r.Nama, nikClean, r.Tempat_Lahir, r.Tanggal_Lahir,
+                            r.Jenis_Kelamin === 'Laki-laki' || r.Jenis_Kelamin === 'L' ? 'L' : 'P',
+                            r.Alamat, r.No_WA, r.Email, r.Status_Kepegawaian,
                             r.TMT, nipFinal, r.Link_Foto
                         ]
                     );
@@ -102,7 +102,7 @@ const migrateTeachers = async () => {
                     // 3. User Account (Gunakan email & mappedID unit pertama)
                     if (r.Email && r.Email.includes('@')) {
                         await conn.query(
-                            "INSERT IGNORE INTO users(username, password, role, guru_id, tenant_id, is_profile_complete) VALUES(?,?,'guru',?,?,1)",
+                            "INSERT IGNORE INTO users(username, password, role, guru_id, tenant_id, is_profile_complete, is_default_password) VALUES(?,?,'guru',?,?,1,1)",
                             [r.Email.trim(), hp, tid, mappedID]
                         );
                         ok++;
