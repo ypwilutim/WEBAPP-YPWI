@@ -14,6 +14,7 @@ const fs = require('fs');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const validator = require('validator');
+const axios = require('axios');
 const db = require('./db');
 
 // Native fetch is available in modern Node.js, no import needed
@@ -245,20 +246,12 @@ const authenticateToken = (req, res, next) => {
 
 // WhatsApp integration using Whacenter
 async function sendWhatsAppMessage(number, message) {
-  console.log('🧪 Testing WhatsApp Connection...\n');
-
-  const WHATSAPP_ENDPOINT = process.env.WHATSAPP_ENDPOINT;
-  const WHATSAPP_DEVICE_ID = process.env.WHATSAPP_DEVICE_ID;
-
-  if (!WHATSAPP_ENDPOINT) {
-    console.error('❌ Error: WHATSAPP_ENDPOINT tidak ditemukan di environment!');
-    return { success: false, message: 'WhatsApp endpoint not configured' };
+  if (process.env.WHATSAPP_ENABLED !== 'true') {
+    console.log('📤 WhatsApp disabled, skipping message to:', number);
+    return { success: true, message: 'WhatsApp disabled' };
   }
 
-  if (!WHATSAPP_DEVICE_ID) {
-    console.error('❌ Error: WHATSAPP_DEVICE_ID tidak ditemukan di environment!');
-    return { success: false, message: 'WhatsApp configuration missing' };
-  }
+  console.log('📤 Sending WhatsApp message to:', number);
 
   try {
     // Ensure number starts with country code (Indonesia)
@@ -276,31 +269,32 @@ async function sendWhatsAppMessage(number, message) {
     console.log(`[WHATSAPP] Sending to ${cleanNumber}: ${message.substring(0, 50)}...`);
 
     const params = new URLSearchParams();
-    params.append('device_id', WHATSAPP_DEVICE_ID);
+    params.append('device_id', process.env.WHATSAPP_DEVICE_ID);
     params.append('number', cleanNumber);
     params.append('message', message);
 
-    const response = await fetch(WHATSAPP_ENDPOINT, {
-      method: 'POST',
+    const endpoint = process.env.WHATSAPP_ENDPOINT;
+    console.log('📤 Sending WhatsApp to:', endpoint);
+    console.log('📤 Params:', { device_id: process.env.WHATSAPP_DEVICE_ID, number: cleanNumber, message: message.substring(0, 100) + '...' });
+
+    const response = await axios.post(endpoint, params, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: params,
-      timeout: 10000
+      timeout: 5000  // 5 second timeout
     });
 
-    const result = await response.json();
     console.log('Response Status:', response.status);
-    console.log('Response Data:', result);
+    console.log('Response Data:', response.data);
 
-    if (response.ok && result.status === true) {
+    if (response.status === 200 && response.data.status === true) {
       console.log('✅ SUCCESS: WhatsApp message sent!');
-      console.log('Message ID:', result.data?.id);
-      return { success: true, message: 'Message sent successfully', data: result };
+      console.log('Message ID:', response.data.data?.id);
+      return { success: true, message: 'Message sent successfully', data: response.data };
     } else {
       console.log('❌ FAILED: WhatsApp message not sent');
-      console.log('Error details:', result);
-      return { success: false, message: 'Failed to send message: ' + (result.message || result.error || 'Unknown error'), data: result };
+      console.log('Error details:', response.data);
+      return { success: false, message: 'Failed to send message: ' + (response.data.message || response.data.error || 'Unknown error'), data: response.data };
     }
 
   } catch (error) {
@@ -503,27 +497,41 @@ app.get('/api/dashboard', authenticateToken, async (req, res) => {
     console.log('Dashboard req.user:', req.user);
     console.log('guru_id value:', req.user.guru_id, 'id value:', req.user.id, 'role:', req.user.role);
 
-    let userQuery, attendanceQuery, todayQuery;
+    let userQuery, attendanceQuery, todayRecords;
     if (req.user.role === 'admin') {
       userQuery = await db.query('SELECT * FROM users WHERE id = ?', [req.user.id]);
       attendanceQuery = await db.query('SELECT COUNT(*) as total FROM attendance_logs');
-      todayQuery = await db.query('SELECT jenis FROM attendance_logs WHERE DATE(waktu_scan) = CURDATE() ORDER BY waktu_scan DESC LIMIT 1');
+      todayRecords = await db.query('SELECT jenis FROM attendance_logs WHERE DATE(waktu_scan) = CURDATE()');
     } else {
       userQuery = await db.query('SELECT * FROM users WHERE guru_id = ?', [req.user.guru_id]);
       attendanceQuery = await db.query('SELECT COUNT(*) as total FROM attendance_logs WHERE teacher_id = ?', [req.user.guru_id]);
-      todayQuery = await db.query('SELECT jenis FROM attendance_logs WHERE teacher_id = ? AND DATE(waktu_scan) = CURDATE() ORDER BY waktu_scan DESC LIMIT 1', [req.user.guru_id]);
+      todayRecords = await db.query('SELECT jenis FROM attendance_logs WHERE teacher_id = ? AND DATE(waktu_scan) = CURDATE()', [req.user.guru_id]);
+    }
+
+    console.log('todayRecords:', todayRecords);
+    const hasMasuk = todayRecords.some(r => r.jenis === 'masuk');
+    const hasPulang = todayRecords.some(r => r.jenis === 'pulang');
+
+    let absensiToday;
+    if (hasMasuk && hasPulang) {
+      absensiToday = 'Sudah absen lengkap';
+    } else if (hasMasuk) {
+      absensiToday = 'Sudah absen masuk';
+    } else {
+      absensiToday = 'Belum absen';
     }
 
     console.log('Dashboard user query result:', userQuery);
     console.log('User[0]:', userQuery[0]);
+    console.log('hasMasuk:', hasMasuk, 'hasPulang:', hasPulang, 'absensiToday:', absensiToday);
 
     res.json({
       success: true,
       data: {
-        attendance: {
-          total: attendanceQuery[0]?.total || 0,
-          today: todayQuery[0]?.jenis || null
-        },
+        totalAbsensi: attendanceQuery[0]?.total || 0,
+        absensiToday: absensiToday,
+        hasMasuk: hasMasuk,
+        hasPulang: hasPulang,
         user: userQuery[0]
       }
     });
