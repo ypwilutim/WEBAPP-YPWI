@@ -92,8 +92,11 @@
     <div class="card">
       <div class="flex justify-between items-center">
         <div class="flex items-center space-x-4">
-          <div class="user-avatar">
-            <img id="userPhoto" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFNUU3RUIiLz4KPHBhdGggZD0iTTIwIDIwQzIyLjc2MTQgMjAgMjUgMTcuNzYxNCAyNSAxNUMyNSAxMi4yMzg2IDIyLjc2MTQgMTAgMjAgMTBDMTcuMjM4NiAxMCAxNSAxMi4yMzg2IDE1IDE1QzE1IDE3Ljc2MTQgMTcuNzYxNCAyMCAyMFoiIGZpbGw9IiM5Q0E5QjQiLz4KPHBhdGggZD0iTTMwIDI4QzMwIDI0LjY4NjMgMjYuNDI3MSAyMiAyMiAyMkgxOEMxMy41NzI5IDIyIDEwIDI0LjY4NjMgMTAgMjhWMzBIMzBWMjhaIiBmaWxsPSIjOUNBOUIiLz4KPC9zdmc+" alt="Foto User">
+          <div class="user-avatar avatar-md" title="Foto Profil" onclick="changeProfilePhoto()">
+            <img id="userPhoto" src="" alt="Foto Profil" style="display: none;" onerror="showFallbackAvatar(this)" onload="showUserPhoto()">
+            <div class="avatar-fallback show" id="avatarFallback">
+              <i class="fas fa-user"></i>
+            </div>
           </div>
           <div>
             <h1 class="mobile-header-title">
@@ -363,8 +366,13 @@
           const userPhotoElement = document.getElementById('userPhoto');
           if (teacher.link_foto && teacher.link_foto.trim() !== '' && teacher.link_foto !== 'null' && teacher.link_foto !== null) {
             userPhotoElement.src = teacher.link_foto;
+            userPhotoElement.onload = showUserPhoto;
+            userPhotoElement.onerror = showFallbackAvatar;
             console.log('Setting user photo:', teacher.link_foto);
+            // Don't call showAvatarFallback here - let onload/onerror handle it
           } else {
+            userPhotoElement.src = '';
+            showAvatarFallback(true);
             console.log('Using default avatar for user');
           }
 
@@ -1074,6 +1082,77 @@
         console.error('Change password error:', error);
         Swal.fire('Error', 'Terjadi kesalahan', 'error');
       }
+    }
+
+    // Profile photo functions
+    function changeProfilePhoto() {
+      // Create file input dynamically
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+          uploadProfilePhoto(file);
+        }
+      };
+      input.click();
+    }
+
+    async function uploadProfilePhoto(file) {
+      const formData = new FormData();
+      formData.append('photo', file);
+
+      try {
+        const response = await fetch('/api/upload-profile-photo', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          body: formData
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          // Update photo immediately
+          document.getElementById('userPhoto').src = result.photoUrl;
+          showAvatarFallback(false);
+          Swal.fire('Berhasil', 'Foto profil berhasil diperbarui', 'success');
+        } else {
+          Swal.fire('Error', result.message, 'error');
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        Swal.fire('Error', 'Gagal mengupload foto', 'error');
+      }
+    }
+
+    function showAvatarFallback(show) {
+      const fallback = document.getElementById('avatarFallback');
+      const img = document.getElementById('userPhoto');
+
+      if (show) {
+        fallback.classList.add('show');
+        img.style.display = 'none';
+      } else {
+        fallback.classList.remove('show');
+        img.style.display = 'block';
+      }
+    }
+
+    function showFallbackAvatar(img) {
+      // Called when image fails to load
+      console.log('Image failed to load, showing fallback');
+      showAvatarFallback(true);
+    }
+
+    function showUserPhoto() {
+      // Called when image loads successfully
+      console.log('Image loaded successfully, hiding fallback');
+      const fallback = document.getElementById('avatarFallback');
+      const img = document.getElementById('userPhoto');
+      fallback.classList.remove('show');
+      img.style.display = 'block';
     }
 
     // Initialize on load

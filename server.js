@@ -44,20 +44,29 @@ console.log('   DB_HOST:', process.env.DB_HOST ? '✅ LOADED' : '❌ MISSING');
 console.log('   PORT:', PORT);
 console.log('');
 
-// Security middleware
+// Security middleware - disabled CSP for development with IP access
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdn.tailwindcss.com", "https://cdnjs.cloudflare.com", "https://unpkg.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://cdn.tailwindcss.com", "https://unpkg.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://unpkg.com"],
-      scriptSrcAttr: ["'unsafe-inline'"], // Allow inline event handlers
-      styleSrcAttr: ["'unsafe-inline'"] // Allow inline styles
-    }
-  }
+  contentSecurityPolicy: false, // Disable CSP for IP access
+  crossOriginOpenerPolicy: false, // Disable COOP for IP access
+  crossOriginEmbedderPolicy: false // Disable COEP for IP access
 }));
+
+// Custom headers to prevent HTTPS redirect and allow IP access
+app.use((req, res, next) => {
+  // Prevent HTTPS redirect by setting appropriate headers
+  res.setHeader('Strict-Transport-Security', 'max-age=0');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+
+  // Allow all origins for development
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  next();
+});
+
+// Preflight requests are handled by the CORS middleware above
 
 // Rate limiting
 const limiter = rateLimit({
@@ -1562,6 +1571,31 @@ app.get('/api/teacher/info', authenticateToken, async (req, res) => {
   }
 });
 
+// Upload profile photo endpoint
+app.post('/api/upload-profile-photo', authenticateToken, teacherUpload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    const photoPath = `/uploads/${req.file.filename}`;
+
+    // Update teacher's link_foto in database
+    await db.query('UPDATE teachers SET link_foto = ?, updated_at = NOW() WHERE id = ?',
+      [photoPath, req.user.guru_id]);
+
+    res.json({
+      success: true,
+      message: 'Photo uploaded successfully',
+      photoUrl: photoPath
+    });
+
+  } catch (error) {
+    console.error('[UPLOAD ERROR]', error.message);
+    res.status(500).json({ success: false, message: 'Error uploading photo' });
+  }
+});
+
 // Haversine distance calculation function
 function calculateDistance(lat1, lng1, lat2, lng2) {
   const R = 6371; // Earth's radius in kilometers
@@ -2237,8 +2271,9 @@ async function startServer() {
     console.log('Continuing without database...');
   }
 
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log('🚀 Server YPWI Lutim berjalan di http://localhost:' + PORT);
+    console.log('🌐 Juga dapat diakses di http://0.0.0.0:' + PORT + ' atau IP lokal Anda');
     console.log('🔐 Login endpoint: POST /api/login');
     console.log('📊 Dashboard endpoint: GET /api/dashboard (protected)');
   });

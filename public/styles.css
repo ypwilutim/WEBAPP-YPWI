@@ -724,21 +724,91 @@ body.profile-page {
   z-index: 10;
 }
 
-/* User avatar */
+/* User avatar - flexible and responsive */
 .user-avatar {
-  width: 56px;
-  height: 56px;
+  position: relative;
   border-radius: 50%;
   overflow: hidden;
   border: 3px solid var(--primary-color);
   box-shadow: var(--shadow);
   flex-shrink: 0;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary-hover);
 }
 
 .user-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: opacity 0.3s ease;
+}
+
+.user-avatar .avatar-fallback {
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: none; /* Hidden by default */
+}
+
+.user-avatar .avatar-fallback.show {
+  display: flex;
+}
+
+/* Avatar sizes */
+.user-avatar.avatar-sm {
+  width: 40px;
+  height: 40px;
+}
+
+.user-avatar.avatar-md {
+  width: 56px;
+  height: 56px;
+}
+
+.user-avatar.avatar-lg {
+  width: 72px;
+  height: 72px;
+}
+
+.user-avatar.avatar-xl {
+  width: 96px;
+  height: 96px;
+}
+
+/* Avatar border styles */
+.user-avatar.border-thin {
+  border-width: 2px;
+}
+
+.user-avatar.border-thick {
+  border-width: 4px;
+}
+
+.user-avatar.border-none {
+  border: none;
+}
+
+/* Avatar shadow variants */
+.user-avatar.shadow-soft {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.user-avatar.shadow-strong {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.user-avatar.shadow-none {
+  box-shadow: none;
 }
 
 /* Summary cards */
@@ -840,10 +910,20 @@ body.profile-page {
     gap: 1rem;
   }
 
-  .user-avatar {
+  .user-avatar.avatar-md {
     width: 48px;
     height: 48px;
     border-width: 2px;
+  }
+
+  .user-avatar.avatar-sm {
+    width: 36px;
+    height: 36px;
+    border-width: 2px;
+  }
+
+  .user-avatar .avatar-fallback {
+    font-size: 1rem;
   }
 
   .dashboard-icon {
