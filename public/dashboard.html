@@ -87,29 +87,30 @@
   </style>
 </head>
 <body>
-  <div class="container" style="max-width: 900px; margin: 2rem auto; padding: 0 1rem;">
+  <div class="container">
     <!-- Header -->
-    <div class="card" style="margin-bottom: 2rem;">
+    <div class="card">
       <div class="flex justify-between items-center">
-        <div class="flex items-center space-x-3">
-          <img src="assets/images/YPWI LOGO HITAM.png" alt="YPWI Logo" class="w-12 h-12 object-contain">
+        <div class="flex items-center space-x-4">
+          <div class="user-avatar">
+            <img id="userPhoto" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiNFNUU3RUIiLz4KPHBhdGggZD0iTTIwIDIwQzIyLjc2MTQgMjAgMjUgMTcuNzYxNCAyNSAxNUMyNSAxMi4yMzg2IDIyLjc2MTQgMTAgMjAgMTBDMTcuMjM4NiAxMCAxNSAxMi4yMzg2IDE1IDE1QzE1IDE3Ljc2MTQgMTcuNzYxNCAyMCAyMFoiIGZpbGw9IiM5Q0E5QjQiLz4KPHBhdGggZD0iTTMwIDI4QzMwIDI0LjY4NjMgMjYuNDI3MSAyMiAyMiAyMkgxOEMxMy41NzI5IDIyIDEwIDI0LjY4NjMgMTAgMjhWMzBIMzBWMjhaIiBmaWxsPSIjOUNBOUIiLz4KPC9zdmc+" alt="Foto User">
+          </div>
           <div>
-            <h1 style="font-size: 1.875rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem;">
-              <i class="fas fa-calendar-check" style="margin-right: 0.75rem; color: var(--primary-color);"></i>
+            <h1 class="mobile-header-title">
               Dashboard Guru
             </h1>
-           <p style="font-size: 1rem; color: var(--text-secondary);" id="teacherName">Memuat data...</p>
-           <p style="font-size: 0.875rem; color: var(--text-muted); margin-top: 0.25rem;" id="teacherDetails">Memuat detail...</p>
-           <div style="margin-top: 0.75rem;">
+           <p id="teacherName">Memuat data...</p>
+           <p id="teacherDetails" class="mobile-teacher-details">Memuat detail...</p>
+           <div class="mobile-connection-status">
              <span class="badge badge-success" id="connectionStatus">
                <i class="fas fa-circle" style="margin-right: 0.5rem; font-size: 0.5rem;"></i>
                  Sistem Online
              </span>
-            </div>
+           </div>
           </div>
         </div>
         <div class="flex space-x-2">
-          <a href="#" onclick="logout(); return false;" class="btn btn-secondary" style="cursor: pointer; position: relative; z-index: 10;">
+          <a href="#" onclick="logout(); return false;" class="btn btn-secondary mobile-logout-btn">
             <i class="fas fa-sign-out-alt" style="margin-right: 0.5rem;"></i>
             Keluar
           </a>
@@ -133,12 +134,12 @@
         </div>
 
         <!-- Attendance Buttons -->
-        <div class="flex space-x-4" style="margin-bottom: 2rem;">
-          <button class="btn btn-success" id="checkInBtn" onclick="recordAttendance('masuk')" style="flex: 1; display: none;">
+        <div class="attendance-buttons-container" style="margin-bottom: 2rem;">
+          <button class="btn btn-success attendance-btn" id="checkInBtn" onclick="recordAttendance('masuk')" style="display: none;">
             <i class="fas fa-sign-in-alt" style="margin-right: 0.5rem;"></i>
             Absen Masuk
           </button>
-          <button class="btn btn-danger" id="checkOutBtn" onclick="recordAttendance('pulang')" style="flex: 1; display: none;">
+          <button class="btn btn-danger attendance-btn" id="checkOutBtn" onclick="recordAttendance('pulang')" style="display: none;">
             <i class="fas fa-sign-out-alt" style="margin-right: 0.5rem;"></i>
             Absen Pulang
           </button>
@@ -179,37 +180,37 @@
           Ringkasan Hari Ini
         </h3>
       </div>
-      <div class="space-y-4">
-        <div style="padding: 1.25rem; background: #f8fafc; border-radius: 0.5rem; border: 1px solid var(--border-color);">
-          <div class="flex justify-between items-center">
-            <div>
-              <span style="font-size: 0.875rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Total Absensi</span>
-              <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);" id="totalAttendance">0</div>
+      <div class="summary-cards-grid">
+        <div class="summary-card">
+          <div class="summary-card-content">
+            <div class="summary-card-text">
+              <span class="summary-card-label">Total Absensi</span>
+              <div class="summary-card-value" id="totalAttendance">0</div>
             </div>
-            <div style="width: 48px; height: 48px; background: var(--success-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-              <i class="fas fa-calendar-check" style="color: white; font-size: 1.25rem;"></i>
-            </div>
-          </div>
-        </div>
-        <div style="padding: 1.25rem; background: #f8fafc; border-radius: 0.5rem; border: 1px solid var(--border-color);">
-          <div class="flex justify-between items-center">
-            <div>
-              <span style="font-size: 0.875rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Status Terakhir</span>
-              <div id="lastStatus" class="badge badge-warning" style="margin-top: 0.25rem;">Belum absen</div>
-            </div>
-            <div style="width: 48px; height: 48px; background: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-              <i class="fas fa-info-circle" style="color: white; font-size: 1.25rem;"></i>
+            <div class="summary-card-icon">
+              <i class="fas fa-calendar-check"></i>
             </div>
           </div>
         </div>
-        <div style="padding: 1.25rem; background: #f8fafc; border-radius: 0.5rem; border: 1px solid var(--border-color);">
-          <div class="flex justify-between items-center">
-            <div>
-              <span style="font-size: 0.875rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Aktivitas Terakhir</span>
-              <div style="font-size: 1rem; font-weight: 500; color: var(--text-primary);" id="lastTime">-</div>
+        <div class="summary-card">
+          <div class="summary-card-content">
+            <div class="summary-card-text">
+              <span class="summary-card-label">Status Terakhir</span>
+              <div id="lastStatus" class="badge badge-warning summary-card-badge">Belum absen</div>
             </div>
-            <div style="width: 48px; height: 48px; background: var(--warning-color); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-              <i class="fas fa-clock" style="color: white; font-size: 1.25rem;"></i>
+            <div class="summary-card-icon">
+              <i class="fas fa-info-circle"></i>
+            </div>
+          </div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-card-content">
+            <div class="summary-card-text">
+              <span class="summary-card-label">Aktivitas Terakhir</span>
+              <div class="summary-card-value" id="lastTime">-</div>
+            </div>
+            <div class="summary-card-icon">
+              <i class="fas fa-clock"></i>
             </div>
           </div>
         </div>
@@ -225,11 +226,11 @@
         </h3>
       </div>
       <div id="recentAttendance">
-        <div style="text-align: center; padding: 3rem;">
-          <div style="width: 64px; height: 64px; margin: 0 auto 1rem; background: #f1f5f9; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+        <div class="recent-attendance-loading">
+          <div class="loading-icon">
             <i class="fas fa-spinner spinner"></i>
           </div>
-          <p style="color: var(--text-secondary); font-weight: 500;">Memuat data riwayat...</p>
+          <p>Memuat data riwayat...</p>
         </div>
       </div>
     </div>
@@ -357,6 +358,15 @@
           document.getElementById('teacherName').textContent = teacher.nama || user.username || 'Guru';
           const schoolNames = assignments.map(a => a.nama_sekolah || a.tenant_id).join(', ');
           document.getElementById('teacherDetails').textContent = `Unit Sekolah: ${schoolNames || 'Tidak ada'}`;
+
+          // Set user photo if available
+          const userPhotoElement = document.getElementById('userPhoto');
+          if (teacher.link_foto && teacher.link_foto.trim() !== '' && teacher.link_foto !== 'null' && teacher.link_foto !== null) {
+            userPhotoElement.src = teacher.link_foto;
+            console.log('Setting user photo:', teacher.link_foto);
+          } else {
+            console.log('Using default avatar for user');
+          }
 
           // Store assignments for location detection
           window.userAssignments = assignments;
@@ -897,10 +907,10 @@
           console.log('Attendance history data:', data);
           if (data.success && data.data.length > 0) {
             recentDiv.innerHTML = data.data.map(attendance => `
-              <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg mb-2">
-                <div>
-                  <p class="font-medium text-gray-900">${attendance.jenis === 'masuk' ? 'Absen Masuk' : 'Absen Pulang'}</p>
-                  <p class="text-sm text-gray-600">${new Date(attendance.waktu_scan).toLocaleString('id-ID')}</p>
+              <div class="recent-attendance-item">
+                <div class="recent-attendance-content">
+                  <div class="recent-attendance-title">${attendance.jenis === 'masuk' ? 'Absen Masuk' : 'Absen Pulang'}</div>
+                  <div class="recent-attendance-time">${new Date(attendance.waktu_scan).toLocaleString('id-ID')}</div>
                 </div>
                 <span class="badge ${attendance.status === 'tepat_waktu' ? 'badge-success' : 'badge-warning'}">
                   ${attendance.status === 'tepat_waktu' ? 'Tepat Waktu' : 'Terlambat'}

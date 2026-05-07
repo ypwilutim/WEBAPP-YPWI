@@ -486,10 +486,109 @@ app.post('/api/send-whatsapp-public', async (req, res) => {
   }
 });
 
-// Test endpoint
-app.get('/api/test-history', function(req, res) {
-  res.json({ success: true, message: 'Test endpoint working' });
-});
+  // Test endpoint
+  app.get('/api/test-history', function(req, res) {
+    res.json({ success: true, message: 'Test endpoint working' });
+  });
+
+  // Test teacher completion progress (bypass auth for testing)
+  app.get('/api/test-teacher-progress', async (req, res) => {
+    try {
+      // Get all active teachers with their completion data
+      const teachers = await db.query(`
+        SELECT
+          t.id,
+          t.nama,
+          t.nik,
+          t.nip,
+          t.email,
+          t.tempat_lahir,
+          t.tanggal_lahir,
+          t.jenis_kelamin,
+          t.alamat,
+          t.no_wa,
+          t.status_kepegawaian,
+          t.tmt,
+          COUNT(ta.teacher_id) as assignment_count,
+          GROUP_CONCAT(DISTINCT ta.jabatan_di_unit) as jabatan_list,
+          GROUP_CONCAT(DISTINCT tn.nama_sekolah) as sekolah_list
+        FROM teachers t
+        LEFT JOIN teacher_assignments ta ON t.id = ta.teacher_id
+        LEFT JOIN tenants tn ON ta.tenant_id = tn.tenant_id
+        WHERE t.status_aktif = 1
+        GROUP BY t.id
+        ORDER BY t.nama ASC
+        LIMIT 5
+      `);
+
+      console.log('Raw teachers data:', teachers);
+
+      // Calculate completion percentage for each teacher
+      const completionData = teachers.map(teacher => {
+        // Define fields to check (excluding system fields and NIY if exists)
+        const fieldsToCheck = [
+          'nama', 'nik', 'nip', 'email', 'tempat_lahir', 'tanggal_lahir',
+          'jenis_kelamin', 'alamat', 'no_wa', 'status_kepegawaian', 'tmt'
+        ];
+
+        let filledFields = 0;
+        let totalFields = fieldsToCheck.length;
+
+        // Check each field
+        fieldsToCheck.forEach(field => {
+          if (teacher[field] && teacher[field].toString().trim() !== '') {
+            filledFields++;
+          }
+        });
+
+        // Bonus for having assignments (minimum 1)
+        const hasAssignments = teacher.assignment_count > 0;
+        if (hasAssignments) {
+          filledFields += 1; // Bonus point for assignments
+          totalFields += 1;
+        }
+
+        // Calculate percentage
+        const percentage = Math.round((filledFields / totalFields) * 100);
+
+        return {
+          id: teacher.id,
+          nama: teacher.nama,
+          filled_fields: filledFields,
+          total_fields: totalFields,
+          has_assignments: hasAssignments,
+          completion_percentage: percentage
+        };
+      });
+
+      console.log('Calculated completion data:', completionData);
+
+      res.json({
+        success: true,
+        message: 'Teacher completion progress test endpoint',
+        data: completionData
+      });
+    } catch (error) {
+      console.error('Test teacher completion progress error:', error);
+      res.status(500).json({ success: false, message: 'Error testing teacher completion progress' });
+    }
+  });
+
+  // Simple test endpoint for teacher progress
+  app.get('/api/test-progress-simple', async (req, res) => {
+    try {
+      const count = await db.query('SELECT COUNT(*) as count FROM teachers WHERE status_aktif = 1');
+      res.json({
+        success: true,
+        message: 'Simple teacher count test',
+        teacher_count: count[0].count,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Simple test error:', error);
+      res.status(500).json({ success: false, message: 'Database error' });
+    }
+  });
 
 // Dashboard route
 app.get('/api/dashboard', authenticateToken, async (req, res) => {
@@ -538,6 +637,45 @@ app.get('/api/dashboard', authenticateToken, async (req, res) => {
   } catch (error) {
     logger.error(error, 'Dashboard route');
     res.status(500).json({ success: false, message: 'Error fetching dashboard data' });
+  }
+});
+
+// Get teacher profile completion progress by tenant
+app.get('/api/admin/teacher-progress', authenticateToken, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    // Get all tenants with teacher count and completion stats
+    const tenants = await db.query(`
+      SELECT
+        t.tenant_id,
+        t.nama_sekolah,
+        COUNT(DISTINCT ta.teacher_id) as total_guru,
+        COUNT(DISTINCT CASE WHEN u.is_profile_complete = 1 THEN ta.teacher_id END) as guru_lengkap,
+        ROUND(
+          (COUNT(DISTINCT CASE WHEN u.is_profile_complete = 1 THEN ta.teacher_id END) * 100.0) /
+          NULLIF(COUNT(DISTINCT ta.teacher_id), 0),
+          1
+        ) as persentase_kelengkapan
+      FROM tenants t
+      LEFT JOIN teacher_assignments ta ON t.tenant_id = ta.tenant_id
+      LEFT JOIN users u ON ta.teacher_id = u.guru_id
+      GROUP BY t.tenant_id, t.nama_sekolah
+      ORDER BY persentase_kelengkapan ASC, t.nama_sekolah ASC
+    `);
+
+    console.log('Teacher progress query result:', tenants);
+
+    res.json({
+      success: true,
+      data: tenants
+    });
+  } catch (error) {
+    console.error('Teacher progress error:', error);
+    res.status(500).json({ success: false, message: 'Error fetching teacher progress' });
   }
 });
 
@@ -943,9 +1081,18 @@ app.get('/api/admin/teachers', authenticateAdmin, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
+    const search = req.query.search ? req.query.search.trim() : '';
+
+    let whereClause = 't.status_aktif = 1';
+    let queryParams = [];
+
+    if (search) {
+      whereClause += ' AND t.nama LIKE ?';
+      queryParams.push(`%${search}%`);
+    }
 
     // Get total count
-    const [totalResult] = await db.query('SELECT COUNT(*) as count FROM teachers WHERE status_aktif = 1');
+    const [totalResult] = await db.query(`SELECT COUNT(*) as count FROM teachers t WHERE ${whereClause}`, queryParams);
     const total = totalResult.count;
 
     // Get teachers with assignments and school names
@@ -956,11 +1103,11 @@ app.get('/api/admin/teachers', authenticateAdmin, async (req, res) => {
       FROM teachers t
       LEFT JOIN teacher_assignments ta ON t.id = ta.teacher_id
       LEFT JOIN tenants tn ON ta.tenant_id = tn.tenant_id
-      WHERE t.status_aktif = 1
+      WHERE ${whereClause}
       GROUP BY t.id
       ORDER BY t.nama ASC
       LIMIT ? OFFSET ?
-    `, [limit, offset]);
+    `, [...queryParams, limit, offset]);
 
     // Format assignments
     const formattedTeachers = teachers.map(teacher => ({
@@ -1393,7 +1540,7 @@ app.put('/api/admin/teachers/:id', teacherUpload.single('foto'), async (req, res
 app.get('/api/teacher/info', authenticateToken, async (req, res) => {
   try {
     const teacherRows = await db.query(
-      'SELECT id, nama, nik, no_wa, jenis_kelamin, status_aktif FROM teachers WHERE id = ? AND status_aktif = 1',
+      'SELECT id, nama, nik, no_wa, jenis_kelamin, status_aktif, link_foto FROM teachers WHERE id = ? AND status_aktif = 1',
       [req.user.guru_id]
     );
     if (teacherRows.length === 0) {
@@ -1744,6 +1891,200 @@ app.post('/api/forgot-password/reset', async (req, res) => {
   }
 });
 
+
+
+// Get teacher list by tenant with completion status
+app.get('/api/admin/tenant-teachers/:tenantId', authenticateToken, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    const { tenantId } = req.params;
+
+    // Get teachers for this tenant with their completion status
+    const teachers = await db.query(`
+      SELECT
+        t.id,
+        t.nama,
+        t.email,
+        t.no_wa,
+        t.jenis_kelamin,
+        t.status_aktif,
+        COALESCE(u.is_profile_complete, 0) as is_profile_complete,
+        COALESCE(u.is_default_password, 1) as is_default_password,
+        CASE
+          WHEN u.is_profile_complete = 1 THEN 100
+          WHEN u.id IS NOT NULL THEN 50  -- Has account but profile not complete
+          ELSE 0  -- No account
+        END as persentase_kelengkapan
+      FROM teacher_assignments ta
+      JOIN teachers t ON ta.teacher_id = t.id
+      LEFT JOIN users u ON t.id = u.guru_id
+      WHERE ta.tenant_id = ?
+      ORDER BY persentase_kelengkapan ASC, t.nama ASC
+    `, [tenantId]);
+
+    res.json({
+      success: true,
+      data: teachers
+    });
+  } catch (error) {
+    console.error('Tenant teachers error:', error);
+    res.status(500).json({ success: false, message: 'Error fetching tenant teachers' });
+  }
+});
+
+// Send WhatsApp reminder for incomplete profiles (bulk)
+app.post('/api/admin/send-reminder-bulk', authenticateToken, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    const { tenantId } = req.body;
+
+    if (!tenantId) {
+      return res.status(400).json({ success: false, message: 'Tenant ID required' });
+    }
+
+    // Get teachers with incomplete profiles
+    const teachers = await db.query(`
+      SELECT
+        t.id,
+        t.nama,
+        t.no_wa,
+        t.jenis_kelamin
+      FROM teacher_assignments ta
+      JOIN teachers t ON ta.teacher_id = t.id
+      LEFT JOIN users u ON t.id = u.guru_id
+      WHERE ta.tenant_id = ?
+        AND (u.is_profile_complete IS NULL OR u.is_profile_complete = 0)
+        AND t.no_wa IS NOT NULL
+        AND t.status_aktif = 1
+    `, [tenantId]);
+
+    if (teachers.length === 0) {
+      return res.status(404).json({ success: false, message: 'Tidak ada guru dengan profil belum lengkap' });
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const teacher of teachers) {
+      try {
+        const message = `🔄 *PENGINGAT LENGKAPI PROFIL*
+
+Assalamu'alaikum ${teacher.nama}
+
+Profil Anda di Sistem YPWI Lutim belum lengkap. Silakan lengkapi data pribadi Anda untuk mengakses sistem absensi.
+
+Cara melengkapi:
+1. Login ke sistem dengan username: ${teacher.nama.split(' ')[0].toLowerCase()}
+2. Ikuti langkah-langkah pengisian profil
+3. Pastikan semua data terisi dengan benar
+
+*YPWI Lutim*`;
+
+        const result = await sendWhatsAppMessage(teacher.no_wa, message);
+        if (result.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (error) {
+        console.error(`Failed to send reminder to ${teacher.nama}:`, error);
+        failCount++;
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Pengiriman selesai. Berhasil: ${successCount}, Gagal: ${failCount}`,
+      data: {
+        total: teachers.length,
+        success: successCount,
+        failed: failCount
+      }
+    });
+
+  } catch (error) {
+    console.error('Send bulk reminder error:', error);
+    res.status(500).json({ success: false, message: 'Error sending bulk reminders' });
+  }
+});
+
+// Send WhatsApp reminder for incomplete profile (individual)
+app.post('/api/admin/send-reminder-individual', authenticateToken, async (req, res) => {
+  try {
+    // Check if user is admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
+
+    const { teacherId } = req.body;
+
+    if (!teacherId) {
+      return res.status(400).json({ success: false, message: 'Teacher ID required' });
+    }
+
+    // Get teacher data
+    const [teacher] = await db.query(`
+      SELECT
+        t.id,
+        t.nama,
+        t.no_wa,
+        t.jenis_kelamin,
+        u.is_profile_complete
+      FROM teachers t
+      LEFT JOIN users u ON t.id = u.guru_id
+      WHERE t.id = ?
+    `, [teacherId]);
+
+    if (!teacher) {
+      return res.status(404).json({ success: false, message: 'Guru tidak ditemukan' });
+    }
+
+    if (!teacher.no_wa) {
+      return res.status(400).json({ success: false, message: 'Guru tidak memiliki nomor WhatsApp' });
+    }
+
+    if (teacher.is_profile_complete === 1) {
+      return res.status(400).json({ success: false, message: 'Profil guru sudah lengkap' });
+    }
+
+    const message = `🔄 *PENGINGAT LENGKAPI PROFIL*
+
+Assalamu'alaikum ${teacher.nama}
+
+Profil Anda di Sistem YPWI Lutim belum lengkap. Silakan lengkapi data pribadi Anda untuk mengakses sistem absensi.
+
+Cara melengkapi:
+1. Login ke sistem dengan username: ${teacher.nama.split(' ')[0].toLowerCase()}
+2. Ikuti langkah-langkah pengisian profil
+3. Pastikan semua data terisi dengan benar
+
+*YPWI Lutim*`;
+
+    const result = await sendWhatsAppMessage(teacher.no_wa, message);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: 'Pesan pengingat berhasil dikirim'
+      });
+    } else {
+      res.status(500).json({ success: false, message: 'Gagal mengirim pesan pengingat' });
+    }
+
+  } catch (error) {
+    console.error('Send individual reminder error:', error);
+    res.status(500).json({ success: false, message: 'Error sending individual reminder' });
+  }
+});
+
 async function startServer() {
   console.log('Starting server...');
   try {
@@ -1774,6 +2115,122 @@ async function startServer() {
       console.log('Sample data insert failed:', error.message);
       console.log('Continuing without sample data...');
     }
+
+  // Admin teacher completion progress
+  app.get('/api/admin/teacher-completion-progress', authenticateAdmin, async (req, res) => {
+    try {
+      console.log('Teacher completion progress endpoint called');
+
+      // Simple query first to test database
+      const simpleCount = await db.query('SELECT COUNT(*) as count FROM teachers WHERE status_aktif = 1');
+      console.log('Total active teachers:', simpleCount[0].count);
+
+      // Get basic teacher data first
+      const basicTeachers = await db.query('SELECT id, nama FROM teachers WHERE status_aktif = 1 ORDER BY nama ASC LIMIT 5');
+      console.log('Sample teachers:', basicTeachers);
+
+      // Get all active teachers with their completion data
+      const teachers = await db.query(`
+        SELECT
+          t.id,
+          t.nama,
+          t.nik,
+          t.nip,
+          t.email,
+          t.tempat_lahir,
+          t.tanggal_lahir,
+          t.jenis_kelamin,
+          t.alamat,
+          t.no_wa,
+          t.status_kepegawaian,
+          t.tmt,
+          COUNT(ta.teacher_id) as assignment_count,
+          GROUP_CONCAT(DISTINCT ta.jabatan_di_unit) as jabatan_list,
+          GROUP_CONCAT(DISTINCT tn.nama_sekolah) as sekolah_list
+        FROM teachers t
+        LEFT JOIN teacher_assignments ta ON t.id = ta.teacher_id
+        LEFT JOIN tenants tn ON ta.tenant_id = tn.tenant_id
+        WHERE t.status_aktif = 1
+        GROUP BY t.id
+        ORDER BY t.nama ASC
+      `);
+
+      console.log('Teacher completion progress query result:', teachers.length, 'teachers found');
+
+      // Calculate completion percentage for each teacher
+      const completionData = teachers.map(teacher => {
+        // Define fields to check (excluding system fields and NIY if exists)
+        const fieldsToCheck = [
+          'nama', 'nik', 'nip', 'email', 'tempat_lahir', 'tanggal_lahir',
+          'jenis_kelamin', 'alamat', 'no_wa', 'status_kepegawaian', 'tmt'
+        ];
+
+        let filledFields = 0;
+        let totalFields = fieldsToCheck.length;
+
+        // Check each field
+        fieldsToCheck.forEach(field => {
+          if (teacher[field] && teacher[field].toString().trim() !== '') {
+            filledFields++;
+          }
+        });
+
+        // Bonus for having assignments (minimum 1)
+        const hasAssignments = teacher.assignment_count > 0;
+        if (hasAssignments) {
+          filledFields += 1; // Bonus point for assignments
+          totalFields += 1;
+        }
+
+        // Calculate percentage
+        const percentage = Math.round((filledFields / totalFields) * 100);
+
+        return {
+          id: teacher.id,
+          nama: teacher.nama,
+          nik: teacher.nik,
+          nip: teacher.nip,
+          email: teacher.email,
+          filled_fields: filledFields,
+          total_fields: totalFields,
+          has_assignments: hasAssignments,
+          assignment_count: teacher.assignment_count,
+          jabatan_list: teacher.jabatan_list,
+          sekolah_list: teacher.sekolah_list,
+          completion_percentage: percentage,
+          status: percentage >= 100 ? 'Lengkap' :
+                  percentage >= 80 ? 'Hampir Lengkap' :
+                  percentage >= 50 ? 'Sedang Dilengkapi' : 'Perlu Dilengkapi'
+        };
+      });
+
+      console.log('Calculated completion data sample:', completionData.slice(0, 3));
+
+      // Calculate overall statistics
+      const stats = {
+        total_teachers: completionData.length,
+        complete_teachers: completionData.filter(t => t.completion_percentage >= 100).length,
+        average_completion: completionData.length > 0 ? Math.round(completionData.reduce((sum, t) => sum + t.completion_percentage, 0) / completionData.length) : 0,
+        completion_distribution: {
+          lengkap: completionData.filter(t => t.completion_percentage >= 100).length,
+          hampir_lengkap: completionData.filter(t => t.completion_percentage >= 80 && t.completion_percentage < 100).length,
+          sedang_dilengkapi: completionData.filter(t => t.completion_percentage >= 50 && t.completion_percentage < 80).length,
+          perlu_dilengkapi: completionData.filter(t => t.completion_percentage < 50).length
+        }
+      };
+
+      console.log('Completion stats:', stats);
+
+      res.json({
+        success: true,
+        data: completionData,
+        stats: stats
+      });
+    } catch (error) {
+      console.error('Teacher completion progress error:', error);
+      res.status(500).json({ success: false, message: 'Error fetching teacher completion progress', error: error.message });
+    }
+  });
 
   } catch (dbError) {
     console.log('Database connection failed:', dbError.message);

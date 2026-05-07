@@ -12,27 +12,100 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <style>
+    <style>
     body { font-family: 'Inter', sans-serif; }
     .nav-active { background-color: #3b82f6; color: white; }
     .modal { display: none; }
     .modal.show { display: flex; }
     .chart-placeholder { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; }
+
+    /* Responsive sidebar styling */
+    aside {
+      position: fixed;
+      height: 100vh;
+      top: 0;
+      left: 0;
+      width: 16rem;
+      overflow-y: auto;
+      transform: translateX(0);
+      transition: transform 0.3s ease;
+      z-index: 40;
+    }
+
+    /* Sidebar overlay for mobile */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 30;
+    }
+
+    /* Mobile sidebar hidden */
+    @media (max-width: 768px) {
+      aside {
+        transform: translateX(-100%);
+        width: 16rem;
+      }
+
+      aside.mobile-open {
+        transform: translateX(0);
+      }
+
+      .sidebar-overlay {
+        display: block;
+      }
+    }
+
+    /* Adjust main content to account for fixed sidebar */
+    main {
+      margin-left: 16rem;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 2rem;
+      transition: margin-left 0.3s ease;
+    }
+
+    /* Mobile main content */
+    @media (max-width: 768px) {
+      main {
+        margin-left: 0;
+        padding: 1rem;
+      }
+
+      /* Improve logo spacing on mobile */
+      aside .flex.items-center.space-x-4 {
+        gap: 0.75rem;
+      }
+    }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
-  <div class="flex min-h-screen">
+  <div class="min-h-screen">
+    <!-- Mobile Menu Button -->
+    <div class="fixed top-4 left-4 z-50 md:hidden">
+      <button id="mobileMenuBtn" class="bg-white p-2 rounded-lg shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+        <i class="fas fa-bars text-gray-700 text-lg"></i>
+      </button>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <!-- Sidebar -->
     <aside class="w-64 bg-white shadow-lg border-r">
-      <div class="p-6 border-b">
-        <div class="flex items-center space-x-3">
-          <img src="assets/images/YPWI LOGO HITAM.png" alt="YPWI Logo" class="w-10 h-10 object-contain">
-          <div>
-            <h1 class="text-xl font-bold text-gray-900">YPWI Lutim</h1>
-            <p class="text-sm text-gray-500">Admin Dashboard</p>
+        <div class="p-6 border-b">
+          <div class="flex items-center space-x-4">
+            <img src="assets/images/YPWI LOGO HITAM.png" alt="YPWI Logo" class="w-10 h-10 object-contain">
+            <div>
+              <h1 class="text-xl font-bold text-gray-900">YPWI Lutim</h1>
+              <p class="text-sm text-gray-500">Admin Dashboard</p>
+            </div>
           </div>
         </div>
-      </div>
 
       <nav class="p-4 space-y-2">
         <button class="nav-item nav-active w-full text-left flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100" data-tab="dashboard">
@@ -67,14 +140,14 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 p-8">
+    <main>
       <!-- Header -->
-      <div class="flex justify-between items-center mb-8">
-        <div>
-          <h2 id="pageTitle" class="text-3xl font-bold text-gray-900">Dashboard</h2>
+      <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+        <div class="md:pl-12 lg:pl-0"> <!-- Add padding on mobile to account for hamburger menu -->
+          <h2 id="pageTitle" class="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h2>
           <p class="text-gray-600 mt-1">Selamat datang kembali, <span id="adminName">Admin</span></p>
         </div>
-        <div class="flex items-center space-x-4">
+        <div class="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-4">
           <span class="text-sm text-gray-500" id="currentDate"></span>
           <div class="flex items-center space-x-2">
             <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
@@ -312,12 +385,12 @@
               </h4>
 
               <form id="singleWhatsAppForm" class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Guru</label>
-                  <input type="text" id="singleTeacherInput" list="teacherList" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ketik nama guru..." required autocomplete="off">
-                  <datalist id="teacherList"></datalist>
-                  <input type="hidden" id="singleTeacherSelect" name="teacherId">
-                </div>
+    <div class="relative">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Cari Guru</label>
+      <input type="text" id="singleTeacherInput" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ketik nama guru..." autocomplete="off">
+      <input type="hidden" id="singleTeacherSelect" name="teacherId">
+      <div id="teacherSuggestions" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto hidden"></div>
+    </div>
 
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Pesan WhatsApp</label>
@@ -878,8 +951,8 @@
 
   <script type="module">
     // Global variables for access across the page
-    let currentUser = null;
-    let authToken = null;
+    window.currentUser = null;
+    window.authToken = null;
 
     // Authentication check with better error handling
     function checkAuthentication() {
@@ -915,8 +988,8 @@
         }
 
         // Store user and token globally for page access
-        currentUser = user;
-        authToken = token;
+        window.currentUser = user;
+        window.authToken = token;
         console.log('✅ [AUTH CHECK] Authentication successful for admin:', user.username);
 
       } catch (error) {
@@ -934,11 +1007,40 @@
     let currentPage = 1;
     let totalPages = 1;
     let pageLimit = 10;
+    let isSubmittingSingle = false;
 
-    const setEl = (id, val) => {
+    // Utility function to set element text content
+    window.setEl = (id, val) => {
       const el = document.getElementById(id);
       if (el) el.textContent = val;
     };
+
+    // Mobile menu functionality
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const sidebar = document.querySelector('aside');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    function toggleMobileMenu() {
+      sidebar.classList.toggle('mobile-open');
+      sidebarOverlay.classList.toggle('hidden');
+    }
+
+    function closeMobileMenu() {
+      sidebar.classList.remove('mobile-open');
+      sidebarOverlay.classList.remove('hidden');
+    }
+
+    mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+    sidebarOverlay.addEventListener('click', closeMobileMenu);
+
+    // Close mobile menu when clicking nav items
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        if (window.innerWidth <= 768) {
+          closeMobileMenu();
+        }
+      });
+    });
 
     // Make functions globally available for onclick attributes
     window.showAddTeacherModal = showAddTeacherModal;
@@ -956,10 +1058,10 @@
     window.createUser = createUser;
     window.editRule = editRule;
     window.deleteRule = deleteRule;
+    window.showTab = showTab;
     window.showSettingsTab = showSettingsTab;
     window.autoDetectLocation = autoDetectLocation;
     window.editTenantLocation = editTenantLocation;
-    window.autoDetectLocationModal = autoDetectLocationModal;
     window.toggleMap = toggleMap;
     window.centerMapOnCurrent = centerMapOnCurrent;
     window.clearMapMarker = clearMapMarker;
@@ -969,7 +1071,7 @@
     window.prevPage = prevPage;
     window.nextPage = nextPage;
 
-    async function fetchDashboardData() {
+    window.fetchDashboardData = async function() {
       try {
         const response = await fetch('/api/admin/summary', {
           headers: { 'Authorization': `Bearer ${authToken}` }
@@ -1307,6 +1409,7 @@
         dashboard: 'Dashboard',
         teachers: 'Manajemen Guru',
         attendance: 'Log Kehadiran',
+        whatsapp: 'Pesan WhatsApp',
         payroll: 'Penggajian',
         documents: 'Dokumen HR',
         settings: 'Pengaturan'
@@ -1339,7 +1442,7 @@
 
       // Populate tenant options
       const tenantSelect = document.querySelector('select[name="tenant_id"]');
-      tenantSelect.innerHTML = '<option value="">Pilih Tenant</option>';
+      tenantSelect.innerHTML = '<option value="">Pilih Sekolah</option>';
 
       // Fetch tenants for dropdown
       fetch('/api/admin/tenants', {
@@ -1423,7 +1526,7 @@
             .then(res => res.json())
             .then(data => {
               if (data.success) {
-                tenantSelect.innerHTML = '<option value="">Pilih Tenant</option>';
+                tenantSelect.innerHTML = '<option value="">Pilih Sekolah</option>';
                 data.data.forEach(tenant => {
                   const option = document.createElement('option');
                   option.value = tenant.tenant_id;
@@ -1805,7 +1908,7 @@
       }
     }
 
-    async function autoDetectLocationModal() {
+    window.autoDetectLocationModal = async function() {
       if (!navigator.geolocation) {
         alert('Browser tidak mendukung geolokasi');
         return;
@@ -2016,7 +2119,7 @@
         day: 'numeric'
       }));
 
-      setEl('adminName', currentUser?.username || 'Admin');
+      setEl('adminName', window.currentUser?.username || 'Admin');
 
       // Attach tab click handlers
       document.querySelectorAll('.nav-item').forEach(btn => {
@@ -2048,9 +2151,9 @@
     });
 
     // WhatsApp Functions
-    function setupWhatsApp() {
+    window.setupWhatsApp = function() {
       loadTenantsForWhatsApp();
-      loadTeachersForWhatsApp();
+      setupTeacherSearch();
       setupMessageTemplates();
 
       // Bulk WhatsApp form
@@ -2108,13 +2211,17 @@
       document.getElementById('singleWhatsAppForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
+        if (isSubmittingSingle) return; // Prevent duplicate submissions
+
         const teacherId = document.getElementById('singleTeacherSelect').value;
         const message = document.getElementById('singleMessage').value.trim();
 
         if (!teacherId || !message) {
-          alert('Pilih guru dan isi pesan!');
+          alert('Pilih guru dengan nomor WhatsApp yang valid dan isi pesan!');
           return;
         }
+
+        isSubmittingSingle = true;
 
         if (!confirm('Kirim pesan ke guru yang dipilih?')) {
           return;
@@ -2145,6 +2252,7 @@
           }
 
           btn.innerHTML = originalText;
+          isSubmittingSingle = false;
           btn.disabled = false;
 
         } catch (error) {
@@ -2152,6 +2260,7 @@
           updateWhatsAppStatus('❌ Terjadi kesalahan saat mengirim pesan', 'error');
           e.target.querySelector('button[type="submit"]').innerHTML = '<i class="fab fa-whatsapp mr-2"></i>Kirim Pesan';
           e.target.querySelector('button[type="submit"]').disabled = false;
+          isSubmittingSingle = false;
         }
       });
 
@@ -2225,72 +2334,86 @@
       }
     }
 
-    async function loadTeachersForWhatsApp() {
-      try {
-        const response = await fetch('/api/admin/teachers', {
-          headers: { 'Authorization': `Bearer ${authToken}` }
+    function setupTeacherSearch() {
+      const input = document.getElementById('singleTeacherInput');
+      const hiddenInput = document.getElementById('singleTeacherSelect');
+      const suggestions = document.getElementById('teacherSuggestions');
+      let searchTimeout;
+
+      input.addEventListener('input', function() {
+        const query = this.value.trim();
+        clearTimeout(searchTimeout);
+
+        if (query.length < 2) {
+          suggestions.classList.add('hidden');
+          hiddenInput.value = '';
+          return;
+        }
+
+        searchTimeout = setTimeout(() => searchTeachers(query), 300);
+      });
+
+      input.addEventListener('focus', function() {
+        if (this.value.trim().length >= 2) {
+          searchTeachers(this.value.trim());
+        }
+      });
+
+      input.addEventListener('blur', function() {
+        // Delay hiding to allow click on suggestions
+        setTimeout(() => suggestions.classList.add('hidden'), 150);
+      });
+
+      async function searchTeachers(query) {
+        try {
+          const response = await fetch(`/api/admin/teachers?search=${encodeURIComponent(query)}&limit=20`, {
+            headers: { 'Authorization': `Bearer ${window.authToken}` }
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            displaySuggestions(result.data);
+          }
+        } catch (error) {
+          console.error('Error searching teachers:', error);
+        }
+      }
+
+      function displaySuggestions(teachers) {
+        suggestions.innerHTML = '';
+
+        if (teachers.length === 0) {
+          suggestions.classList.add('hidden');
+          return;
+        }
+
+        teachers.forEach(teacher => {
+          const assignment = teacher.assignments && teacher.assignments.length > 0 ? teacher.assignments[0] : null;
+          const jabatan = assignment ? assignment.jabatan_di_unit || 'Guru' : 'Guru';
+          const schoolName = assignment ? assignment.nama_sekolah || 'Unknown' : 'Unknown';
+
+          const div = document.createElement('div');
+          div.className = 'px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0';
+          div.innerHTML = `
+            <div class="font-medium text-gray-900">${teacher.nama}</div>
+            <div class="text-sm text-gray-600">${jabatan} - ${schoolName}</div>
+            <div class="text-xs text-gray-500">${teacher.no_wa ? teacher.no_wa : 'No WhatsApp'}</div>
+          `;
+
+          div.addEventListener('click', function() {
+            if (teacher.no_wa) {
+              input.value = `${teacher.nama} (${teacher.no_wa}) - ${jabatan}`;
+              hiddenInput.value = teacher.id;
+              suggestions.classList.add('hidden');
+            } else {
+              alert('Guru ini tidak memiliki nomor WhatsApp');
+            }
+          });
+
+          suggestions.appendChild(div);
         });
 
-        if (response.ok) {
-          const result = await response.json();
-          const datalist = document.getElementById('teacherList');
-          datalist.innerHTML = '';
-
-          // Store teacher data for lookup
-          window.teacherData = {};
-
-          result.data.forEach(teacher => {
-            if (teacher.no_wa) { // Only show teachers with WhatsApp numbers
-              const option = document.createElement('option');
-
-              // Get assignment info (jabatan and school name)
-              const assignment = teacher.assignments && teacher.assignments.length > 0 ? teacher.assignments[0] : null;
-              const jabatan = assignment ? assignment.jabatan_di_unit || 'Guru' : 'Guru';
-              const schoolName = assignment ? assignment.nama_sekolah || 'Unknown' : 'Unknown';
-
-              // Display format: "Nama Guru (No WA) - Jabatan"
-              const displayText = `${teacher.nama} (${teacher.no_wa}) - ${jabatan}`;
-              option.value = displayText;
-
-              // Store teacher data for later lookup
-              window.teacherData[displayText] = {
-                id: teacher.id,
-                nama: teacher.nama,
-                no_wa: teacher.no_wa,
-                jabatan: jabatan,
-                schoolName: schoolName
-              };
-
-              datalist.appendChild(option);
-            }
-          });
-
-          // Add input event listener for selection
-          const input = document.getElementById('singleTeacherInput');
-          const hiddenInput = document.getElementById('singleTeacherSelect');
-
-          input.addEventListener('input', function() {
-            const selectedText = this.value;
-            const teacher = window.teacherData[selectedText];
-            if (teacher) {
-              hiddenInput.value = teacher.id;
-            } else {
-              hiddenInput.value = '';
-            }
-          });
-
-          input.addEventListener('change', function() {
-            const selectedText = this.value;
-            const teacher = window.teacherData[selectedText];
-            if (!teacher && this.value !== '') {
-              // Invalid selection, clear it
-              this.value = '';
-              hiddenInput.value = '';
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Error loading teachers for WhatsApp:', error);
+        suggestions.classList.remove('hidden');
       }
     }
 
@@ -2303,7 +2426,7 @@
       };
 
       statusDiv.className = `border rounded-lg p-4 ${colors[type] || colors.info}`;
-      statusDiv.innerHTML = `<p class="text-sm">${message}</p>`;
+      statusDiv.innerHTML = `<p class="text-gray-600 text-sm">${message}</p>`;
 
       // Add timestamp
       const timestamp = new Date().toLocaleTimeString('id-ID');
@@ -2552,6 +2675,46 @@
     }
 
 
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const now = new Date();
+      setEl('currentDate', now.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }));
+
+      setEl('adminName', window.currentUser?.username || 'Admin');
+
+      // Attach tab click handlers
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const tab = this.getAttribute('data-tab');
+          showTab(tab);
+        });
+      });
+
+      // Add settings navigation event listeners
+      document.querySelectorAll('.settings-nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+          const setting = this.getAttribute('data-setting');
+          showSettingsTab(setting);
+        });
+      });
+
+      // Add coordinate preview listeners
+      document.getElementById('latitudeInput')?.addEventListener('input', updateCoordinatePreview);
+      document.getElementById('longitudeInput')?.addEventListener('input', updateCoordinatePreview);
+
+      // Add modal auto-detect button listener
+      document.getElementById('autoDetectModalBtn')?.addEventListener('click', autoDetectLocationModal);
+
+      fetchDashboardData();
+
+      // WhatsApp functionality
+      setupWhatsApp();
+    });
 
     // Override the existing updateCoordinatePreview to work with our new system
     window.updateCoordinatePreview = updateCoordinatePreview;
