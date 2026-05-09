@@ -20,4 +20,6 @@ echo ⚡ Triggering auto-deploy...
 curl -X POST http://100.115.156.20:3000/auto-deploy
 
 echo ✅ Deployment complete!
+echo 📱 You can now test button clicks in mobile browser
+echo 📱 Check server logs with: pm2 logs ypwisys
 pause
