@@ -170,9 +170,27 @@
         height: 240px;
       }
     }
+
+    /* Button click animation */
+    .button-click {
+      animation: buttonPulse 0.3s ease;
+    }
+
+    @keyframes buttonPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
   </style>
 </head>
-<body>
+  <body>
+  <!-- Simple test to ensure page loads -->
+  <script>
+    console.log('🔥 SCANNER.HTML LOADED!');
+    console.log('🔥 Current URL:', window.location.href);
+    console.log('🔥 Timestamp:', new Date().toISOString());
+    alert('Scanner page loaded! Check console for logs.');
+  </script>
 
   <!-- Header -->
   <header id="scanner-header" class="scanner-content">
@@ -204,9 +222,12 @@
            <button id="switch-camera-btn" class="bg-purple-600 hover:bg-purple-700 text-white p-2 rounded-lg transition" title="Ganti Kamera">
              <i class="fas fa-sync-alt"></i>
            </button>
-           <button id="force-refresh-btn" class="bg-orange-600 hover:bg-orange-700 text-white p-2 rounded-lg transition" title="Force Refresh">
-             <i class="fas fa-sync-alt"></i>
-           </button>
+            <button id="force-refresh-btn" class="bg-orange-600 hover:bg-orange-700 text-white p-2 rounded-lg transition" title="Force Refresh">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+            <button id="test-btn" class="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition" title="Test Button">
+              <i class="fas fa-exclamation"></i>
+            </button>
          </div>
        </div>
      </div>
@@ -309,8 +330,22 @@
       // Register Service Worker
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/scanner-sw.js')
-          .then(reg => console.log('[SW] Registered:', reg.scope))
-          .catch(err => console.error('[SW] Registration failed:', err));
+          .then(reg => {
+            console.log('[SW] Registered:', reg.scope);
+            console.log('[SW] Service worker state:', reg.active?.state);
+            console.log('[SW] Waiting service worker:', reg.waiting?.state);
+            console.log('[SW] Installing service worker:', reg.installing?.state);
+          })
+          .catch(err => {
+            console.error('[SW] Registration failed:', err);
+            // Try fallback registration
+            console.log('[SW] Attempting fallback registration...');
+            navigator.serviceWorker.register('./scanner-sw.js')
+              .then(reg => console.log('[SW] Fallback registered:', reg.scope))
+              .catch(fallbackErr => console.error('[SW] Fallback failed:', fallbackErr));
+          });
+      } else {
+        console.warn('[SW] Service Worker not supported in this browser');
       }
     </script>
 </body>

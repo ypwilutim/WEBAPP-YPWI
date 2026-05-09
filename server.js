@@ -2947,6 +2947,26 @@ Terima kasih telah melakukan absensi!`;
       });
     });
 
+    /**
+     * GET /api/test-buttons
+     * Test endpoint to verify button functionality
+     */
+    app.get('/api/test-buttons', (req, res) => {
+      res.json({
+        success: true,
+        message: 'Server is running and buttons should work',
+        timestamp: new Date().toISOString(),
+        buttons: {
+          torch: 'Toggle flashlight',
+          switch_camera: 'Switch front/back camera',
+          sync: 'Sync offline data',
+          manual_scan: 'Start manual scan',
+          force_refresh: 'Force app refresh',
+          test: 'Test button'
+        }
+      });
+    });
+
    /**
     * GET /api/scanner/status
     * Admin endpoint to check scanner device status

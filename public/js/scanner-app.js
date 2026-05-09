@@ -3,6 +3,11 @@
  * Using jsQR for direct QR decoding (more reliable)
  */
 
+// Simple test to ensure JS is loaded
+console.log('[SCANNER] scanner-app.js loaded successfully!');
+console.log('[SCANNER] Current URL:', window.location.href);
+console.log('[SCANNER] User Agent:', navigator.userAgent);
+
 (function() {
   'use strict';
 
@@ -846,31 +851,49 @@ async function processAttendance(qrData) {
   // ==================== PWA REFRESH & VERSIONING ====================
   function forceAppRefresh() {
     console.log('[PWA] Force refreshing app...');
+    console.log('[PWA] Service worker available:', 'serviceWorker' in navigator);
+    console.log('[PWA] Caches available:', 'caches' in window);
     showToast('Memuat ulang aplikasi...', 'info');
 
     // Force service worker update
     if ('serviceWorker' in navigator) {
+      console.log('[PWA] Updating service workers...');
       navigator.serviceWorker.getRegistrations().then(registrations => {
+        console.log('[PWA] Found', registrations.length, 'service workers');
         registrations.forEach(registration => {
           registration.update();
         });
       });
 
       // Send message to service worker for cache busting
-      navigator.serviceWorker.controller?.postMessage({ type: 'FORCE_REFRESH' });
+      if (navigator.serviceWorker.controller) {
+        console.log('[PWA] Sending FORCE_REFRESH message to service worker');
+        navigator.serviceWorker.controller.postMessage({ type: 'FORCE_REFRESH' });
+      } else {
+        console.warn('[PWA] No service worker controller available');
+      }
+    } else {
+      console.warn('[PWA] Service Worker not supported');
     }
 
     // Clear caches
     if ('caches' in window) {
+      console.log('[PWA] Clearing browser caches...');
       caches.keys().then(names => {
+        console.log('[PWA] Found caches, clearing...');
         names.forEach(name => {
+          console.log('[PWA] Deleting cache:', name);
           caches.delete(name);
         });
       });
+    } else {
+      console.warn('[PWA] Cache API not supported');
     }
 
     // Hard refresh after short delay
+    console.log('[PWA] Scheduling hard refresh in 1 second...');
     setTimeout(() => {
+      console.log('[PWA] Executing hard refresh');
       window.location.reload(true);
     }, 1000);
   }
@@ -921,6 +944,16 @@ async function processAttendance(qrData) {
   // ==================== INITIALIZATION ====================
   async function init() {
     console.log('[SCANNER] Initializing...');
+    console.log('[INIT] DOM ready:', document.readyState);
+    console.log('[INIT] Service worker supported:', 'serviceWorker' in navigator);
+    console.log('[INIT] Caches API supported:', 'caches' in window);
+
+    // Test DOM elements exist
+    console.log('[INIT] Testing DOM elements:');
+    console.log('[INIT] - torch-btn:', !!document.getElementById('torch-btn'));
+    console.log('[INIT] - switch-camera-btn:', !!document.getElementById('switch-camera-btn'));
+    console.log('[INIT] - force-refresh-btn:', !!document.getElementById('force-refresh-btn'));
+    console.log('[INIT] - test-btn:', !!document.getElementById('test-btn'));
 
     // Ensure jsQR is loaded
     if (typeof jsQR === 'undefined') {
@@ -1037,9 +1070,39 @@ async function processAttendance(qrData) {
     });
 
     // Force refresh button
-    document.getElementById('force-refresh-btn')?.addEventListener('click', () => {
-      forceAppRefresh();
-    });
+    const forceRefreshBtn = document.getElementById('force-refresh-btn');
+    if (forceRefreshBtn) {
+      console.log('[INIT] Force refresh button found, adding listener');
+      forceRefreshBtn.addEventListener('click', () => {
+        console.log('[BUTTON] Force refresh clicked');
+        if (typeof forceAppRefresh === 'function') {
+          forceAppRefresh();
+        } else {
+          console.error('[BUTTON] forceAppRefresh function not found');
+          showToast('Error: Function tidak tersedia', 'error');
+        }
+      });
+    } else {
+      console.warn('[INIT] Force refresh button not found in DOM');
+    }
+
+    // Test button
+    const testBtn = document.getElementById('test-btn');
+    if (testBtn) {
+      console.log('[INIT] Test button found, adding listener');
+      testBtn.addEventListener('click', () => {
+        console.log('[BUTTON] Test button clicked');
+        // Visual feedback
+        testBtn.classList.add('button-click');
+        setTimeout(() => testBtn.classList.remove('button-click'), 300);
+
+        alert('Tombol test berhasil diklik! 🎉'); // Alert + toast
+        showToast('Tombol test berhasil! 🎉', 'success', 3000);
+      });
+    } else {
+      console.warn('[INIT] Test button not found in DOM');
+      alert('Tombol test tidak ditemukan di DOM!');
+    }
 
     document.getElementById('close-modal').addEventListener('click', () => {
       document.getElementById('scan-result-modal').classList.add('hidden');
@@ -1051,7 +1114,15 @@ async function processAttendance(qrData) {
     // Check for updates on startup
     checkForUpdates();
 
-    console.log('[SCANNER] Initialized');
+    console.log('[SCANNER] Initialized - all event listeners registered');
+    console.log('[INIT] Available buttons:', {
+      torch: !!document.getElementById('torch-btn'),
+      switch: !!document.getElementById('switch-camera-btn'),
+      sync: !!document.getElementById('sync-btn'),
+      manual: !!document.getElementById('manual-scan-btn'),
+      force: !!document.getElementById('force-refresh-btn'),
+      test: !!document.getElementById('test-btn')
+    });
   }
 
   async function fetchTenantList() {
