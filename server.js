@@ -2929,6 +2929,24 @@ Terima kasih telah melakukan absensi!`;
       }
     });
 
+    /**
+     * GET /api/version
+     * Public endpoint to get current app version
+     */
+    app.get('/api/version', (req, res) => {
+      res.json({
+        success: true,
+        version: '1.0.3',
+        timestamp: new Date().toISOString(),
+        features: [
+          'Scanner offline-capable',
+          'Auto masuk/pulang detection',
+          'Force refresh for PWA',
+          'iOS compatibility'
+        ]
+      });
+    });
+
    /**
     * GET /api/scanner/status
     * Admin endpoint to check scanner device status

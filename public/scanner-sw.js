@@ -3,14 +3,15 @@
  * Provides offline functionality and background sync for scanner PWA
  */
 
-const CACHE_NAME = 'ypwi-scanner-v1';
+const CACHE_VERSION = '1.0.3';
+const CACHE_NAME = `ypwi-scanner-v${CACHE_VERSION}`;
 const STATIC_ASSETS = [
   '/',
-  '/scanner.html',
-  '/scanner-manifest.json',
-  '/js/scanner-app.js',
-  '/assets/images/YPWI LOGO HITAM.png'
-  // Note: External CDN resources (Tailwind, FontAwesome, html5-qrcode) 
+  '/scanner.html?v=' + CACHE_VERSION,
+  '/scanner-manifest.json?v=' + CACHE_VERSION,
+  '/js/scanner-app.js?v=' + CACHE_VERSION,
+  '/assets/images/YPWI LOGO HITAM.png?v=' + CACHE_VERSION
+  // Note: External CDN resources (Tailwind, FontAwesome, jsQR)
   // are NOT cached due to CORS. They load directly from CDN in browser.
 ];
 
@@ -30,16 +31,25 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate event - clean old caches
+// Activate event - clean old caches and force refresh
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker');
+  console.log('[SW] Activating service worker v' + CACHE_VERSION);
   event.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(
         keys.filter(key => key !== CACHE_NAME)
           .map(key => caches.delete(key))
       );
-    }).then(() => self.clients.claim())
+    }).then(() => {
+      // Force refresh all clients to get latest version
+      return self.clients.claim().then(() => {
+        return self.clients.matchAll().then(clients => {
+          clients.forEach(client => {
+            client.postMessage({ type: 'CACHE_BUST', version: CACHE_VERSION });
+          });
+        });
+      });
+    })
   );
 });
 
@@ -218,7 +228,7 @@ self.addEventListener('push', (event) => {
 // Message event (from client)
 self.addEventListener('message', (event) => {
   console.log('[SW] Message received:', event.data);
-  
+
   if (event.data && event.data.type === 'TRIGGER_SYNC') {
     self.registration.sync.register('attendance-sync')
       .then(() => console.log('[SW] Background sync registered'))
@@ -229,6 +239,23 @@ self.addEventListener('message', (event) => {
     // Return pending count
     getQueueCount().then(count => {
       event.ports[0].postMessage({ count });
+    });
+  }
+
+  if (event.data && event.data.type === 'FORCE_REFRESH') {
+    console.log('[SW] Force refresh requested');
+    // Clear all caches
+    caches.keys().then(names => {
+      return Promise.all(
+        names.map(name => caches.delete(name))
+      );
+    }).then(() => {
+      // Notify all clients to refresh
+      return self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({ type: 'CACHE_BUST', force: true });
+        });
+      });
     });
   }
 });

@@ -843,6 +843,81 @@ async function processAttendance(qrData) {
     });
   }
 
+  // ==================== PWA REFRESH & VERSIONING ====================
+  function forceAppRefresh() {
+    console.log('[PWA] Force refreshing app...');
+    showToast('Memuat ulang aplikasi...', 'info');
+
+    // Force service worker update
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          registration.update();
+        });
+      });
+
+      // Send message to service worker for cache busting
+      navigator.serviceWorker.controller?.postMessage({ type: 'FORCE_REFRESH' });
+    }
+
+    // Clear caches
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        names.forEach(name => {
+          caches.delete(name);
+        });
+      });
+    }
+
+    // Hard refresh after short delay
+    setTimeout(() => {
+      window.location.reload(true);
+    }, 1000);
+  }
+
+  function checkForUpdates() {
+    if (!navigator.onLine) return;
+
+    fetch(`${CONFIG.API_BASE}/version`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (!data) return;
+
+        const currentVersion = localStorage.getItem('app_version') || '1.0.0';
+        if (currentVersion !== data.version) {
+          showToast(`Update ${data.version} tersedia! Klik refresh untuk update.`, 'info', 15000);
+          localStorage.setItem('app_version', data.version);
+        }
+      })
+      .catch(err => {
+        console.log('[VERSION] Check failed:', err.message);
+      });
+  }
+
+  function initIOSHandling() {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+    if (isIOS) {
+      console.log('[iOS] iOS device detected, enabling iOS-specific handling');
+
+      // Force refresh every hour to prevent stale cache
+      setInterval(() => {
+        if (document.hidden) return; // Don't refresh if tab not active
+        console.log('[iOS] Hourly refresh');
+        window.location.reload(true);
+      }, 60 * 60 * 1000);
+
+      // Add iOS-specific cache busting
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', event => {
+          if (event.data && event.data.type === 'CACHE_BUST') {
+            forceAppRefresh();
+          }
+        });
+      }
+    }
+  }
+
   // ==================== INITIALIZATION ====================
   async function init() {
     console.log('[SCANNER] Initializing...');
@@ -863,11 +938,31 @@ async function processAttendance(qrData) {
     window.addEventListener('online', () => {
       updateNetworkStatus();
       showToast('Koneksi Internet tersedia', 'success');
+      checkForUpdates(); // Check for updates when coming online
     });
     window.addEventListener('offline', () => {
       updateNetworkStatus();
       showToast('Offline mode', 'warning');
     });
+
+    // iOS specific handling
+    initIOSHandling();
+
+    // Listen for service worker messages
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', event => {
+        if (event.data && event.data.type === 'CACHE_BUST') {
+          console.log('[PWA] Cache bust received:', event.data);
+          if (event.data.force) {
+            // Force refresh immediately
+            window.location.reload(true);
+          } else {
+            // Just notify user about update
+            showToast(`Update ${event.data.version} tersedia! Refresh halaman.`, 'info', 10000);
+          }
+        }
+      });
+    }
 
     const deviceLoaded = await loadDeviceInfo();
 
@@ -904,42 +999,47 @@ async function processAttendance(qrData) {
       initScanner();
     });
 
-document.getElementById('torch-btn')?.addEventListener('click', async () => {
-       if (state.stream) {
-         try {
-           const videoTrack = state.stream.getVideoTracks()[0];
-           const capabilities = videoTrack.getCapabilities();
-           if ('torch' in capabilities) {
-             const currentTorch = videoTrack.getSettings().torch || false;
-             await videoTrack.applyConstraints({ advanced: [{ torch: !currentTorch }] });
-             const btn = document.getElementById('torch-btn');
-             if (btn) {
-               btn.classList.toggle('bg-yellow-600', !currentTorch);
-               btn.classList.toggle('bg-gray-600', currentTorch);
-               btn.title = !currentTorch ? 'Turn off torch' : 'Toggle flashlight';
-             }
-             showToast(!currentTorch ? 'Torch ON' : 'Torch OFF', 'info', 1500);
-           } else {
-             showToast('Torch tidak didukung oleh kamera ini', 'warning');
-           }
-         } catch (e) {
-           console.error('[TORCH] Error toggling torch:', e);
-           showToast('Gagal mengubah torch: ' + e.message, 'error');
-         }
-       } else {
-         showToast('Kamera belum aktif', 'warning');
-       }
-     });
+    document.getElementById('torch-btn')?.addEventListener('click', async () => {
+      if (state.stream) {
+        try {
+          const videoTrack = state.stream.getVideoTracks()[0];
+          const capabilities = videoTrack.getCapabilities();
+          if ('torch' in capabilities) {
+            const currentTorch = videoTrack.getSettings().torch || false;
+            await videoTrack.applyConstraints({ advanced: [{ torch: !currentTorch }] });
+            const btn = document.getElementById('torch-btn');
+            if (btn) {
+              btn.classList.toggle('bg-yellow-600', !currentTorch);
+              btn.classList.toggle('bg-gray-600', currentTorch);
+              btn.title = !currentTorch ? 'Turn off torch' : 'Toggle flashlight';
+            }
+            showToast(!currentTorch ? 'Torch ON' : 'Torch OFF', 'info', 1500);
+          } else {
+            showToast('Torch tidak didukung oleh kamera ini', 'warning');
+          }
+        } catch (e) {
+          console.error('[TORCH] Error toggling torch:', e);
+          showToast('Gagal mengubah torch: ' + e.message, 'error');
+          }
+      } else {
+        showToast('Kamera belum aktif', 'warning');
+      }
+    });
 
-     // Switch camera button
-     document.getElementById('switch-camera-btn')?.addEventListener('click', async () => {
-       if (state.stream) {
-         state.currentFacingMode = state.currentFacingMode === 'environment' ? 'user' : 'environment';
-         await stopScanner();
-         showToast(`Beralih ke kamera ${state.currentFacingMode === 'environment' ? 'belakang' : 'depan'}`, 'info');
-         await initScanner();
-       }
-     });
+    // Switch camera button
+    document.getElementById('switch-camera-btn')?.addEventListener('click', async () => {
+      if (state.stream) {
+        state.currentFacingMode = state.currentFacingMode === 'environment' ? 'user' : 'environment';
+        await stopScanner();
+        showToast(`Beralih ke kamera ${state.currentFacingMode === 'environment' ? 'belakang' : 'depan'}`, 'info');
+        await initScanner();
+      }
+    });
+
+    // Force refresh button
+    document.getElementById('force-refresh-btn')?.addEventListener('click', () => {
+      forceAppRefresh();
+    });
 
     document.getElementById('close-modal').addEventListener('click', () => {
       document.getElementById('scan-result-modal').classList.add('hidden');
@@ -947,6 +1047,9 @@ document.getElementById('torch-btn')?.addEventListener('click', async () => {
 
     updatePendingCount();
     registerBackgroundSync();
+
+    // Check for updates on startup
+    checkForUpdates();
 
     console.log('[SCANNER] Initialized');
   }
