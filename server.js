@@ -2875,19 +2875,59 @@ Terima kasih telah melakukan absensi!`;
     }
   });
 
-   /**
-    * GET /api/public/tenants
-    * Public endpoint for scanner device setup (no auth required)
-    */
-   app.get('/api/public/tenants', async (req, res) => {
-     try {
-       const tenants = await db.query('SELECT tenant_id, nama_sekolah FROM tenants ORDER BY nama_sekolah ASC');
-       res.json({ success: true, data: tenants });
-     } catch (error) {
-       console.error('[PUBLIC TENANTS] Error:', error.message);
-       res.status(500).json({ success: false, message: 'Error fetching tenants' });
-     }
-   });
+/**
+     * GET /api/public/tenants
+     * Public endpoint for scanner device setup (no auth required)
+     */
+    app.get('/api/public/tenants', async (req, res) => {
+      try {
+        const tenants = await db.query('SELECT tenant_id, nama_sekolah FROM tenants ORDER BY nama_sekolah ASC');
+        res.json({ success: true, data: tenants });
+      } catch (error) {
+        console.error('[PUBLIC TENANTS] Error:', error.message);
+        res.status(500).json({ success: false, message: 'Error fetching tenants' });
+      }
+    });
+
+    /**
+     * GET /api/scanner/check-status
+     * Public endpoint to check if teacher already scanned today (for masuk/pulang logic)
+     */
+    app.get('/api/scanner/check-status', async (req, res) => {
+      const { scan_id } = req.query;
+      if (!scan_id) {
+        return res.status(400).json({ success: false, message: 'scan_id required' });
+      }
+
+      try {
+        // Check if teacher has 'masuk' today
+        const today = new Date().toISOString().split('T')[0];
+        const masukCheck = await db.query(
+          'SELECT id FROM attendance_logs WHERE teacher_id = (SELECT id FROM teachers WHERE scan_id = ?) AND jenis = \'masuk\' AND DATE(waktu_scan) = ?',
+          [scan_id, today]
+        );
+
+        const pulangCheck = await db.query(
+          'SELECT id FROM attendance_logs WHERE teacher_id = (SELECT id FROM teachers WHERE scan_id = ?) AND jenis = \'pulang\' AND DATE(waktu_scan) = ?',
+          [scan_id, today]
+        );
+
+        // Get allowed pulang time from rules
+        const ruleCheck = await db.query(
+          'SELECT jam_mulai as jam_pulang_buka FROM attendance_rules WHERE tipe = \'Pulang\' AND jam_mulai IS NOT NULL ORDER BY jam_mulai ASC LIMIT 1'
+        );
+
+        res.json({
+          success: true,
+          has_masuk: masukCheck.length > 0,
+          has_pulang: pulangCheck.length > 0,
+          jam_pulang_buka: ruleCheck[0]?.jam_pulang_buka || null
+        });
+      } catch (error) {
+        console.error('[CHECK-STATUS] Error:', error.message);
+        res.status(500).json({ success: false, message: 'Error checking status' });
+      }
+    });
 
    /**
     * GET /api/scanner/status

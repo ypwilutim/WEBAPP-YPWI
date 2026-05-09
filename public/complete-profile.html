@@ -175,15 +175,15 @@
                     <i class="bi bi-person text-gray-400 text-3xl absolute" id="photo-icon"></i>
                   </div>
                 </div>
-                <div id="existing-photo-info" class="mt-2">
-                  <small class="text-green-600">
-                    <i class="bi bi-check-circle-fill mr-1"></i>
-                    Foto sudah tersimpan di database
-                  </small>
-                </div>
-              </div>
-            </div>
-          </div>
+<div id="existing-photo-info" class="mt-2 hidden">
+                   <small class="text-green-600">
+                     <i class="bi bi-check-circle-fill mr-1"></i>
+                     Foto sudah tersimpan di database
+                   </small>
+                 </div>
+               </div>
+             </div>
+           </div>
 
           <div class="pt-10 border-t border-gray-100">
             <button type="submit" class="w-full max-w-lg mx-auto bg-[#066e3a] text-white font-extrabold py-4 px-8 rounded-3xl text-xl flex items-center justify-center gap-3 shadow-lg transform hover:scale-[1.02] transition">
@@ -332,11 +332,14 @@
       setValue('status_aktif', teacher.status_aktif);
       setValue('link_foto', teacher.link_foto);
 
-      if (teacher.link_foto) {
-        document.getElementById('photo-preview').src = teacher.link_foto;
-        document.getElementById('photo-preview').classList.remove('hidden');
-        document.getElementById('photo-icon').classList.add('hidden');
-      }
+if (teacher.link_foto) {
+         document.getElementById('photo-preview').src = teacher.link_foto;
+         document.getElementById('photo-preview').classList.remove('hidden');
+         document.getElementById('photo-icon').classList.add('hidden');
+         document.getElementById('existing-photo-info').classList.remove('hidden');
+       } else {
+         document.getElementById('existing-photo-info').classList.add('hidden');
+       }
     }
 
     // Store assignments locally (not in database until final submit)
@@ -563,6 +566,7 @@ Silakan login dan ubah password default Anda untuk keamanan.`;
           document.getElementById('photo-preview').src = e.target.result;
           document.getElementById('photo-preview').classList.remove('hidden');
           document.getElementById('photo-icon').classList.add('hidden');
+          document.getElementById('existing-photo-info').classList.add('hidden');
         };
         reader.readAsDataURL(file);
       }

@@ -18,7 +18,8 @@
     QR_SCAN_COOLDOWN: 3000,
     SYNC_RETRY_ATTEMPTS: 3,
     AUTO_SYNC_INTERVAL: 30000,
-    SCAN_INTERVAL: 100 // ms between scan attempts
+    SCAN_INTERVAL: 50, // Reduced from 100ms for faster scanning
+    MAX_RETRY_AGE: 24 * 60 * 60 * 1000 // 24 hours max retry age
   };
 
   // ==================== STATE ====================
@@ -32,7 +33,9 @@
     lastScanTime: {},
     schoolList: [],
     isProcessingScan: false,
-    scanAnimationFrame: null
+    processingScans: {}, // Per-scan_id processing tracker - replaces global blocking
+    scanAnimationFrame: null,
+    currentFacingMode: 'environment' // Track current camera
   };
 
   // ==================== INDEXEDDB ====================
@@ -219,20 +222,17 @@
     stopScanner();
 
     try {
-      // Request camera with optimal settings for QR scanning
-      const constraints = {
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1920, max: 1920 },
-          height: { ideal: 1080, max: 1080 },
-          // Focus and exposure for better scan
-          focusMode: 'continuous',
-          exposureMode: 'continuous',
-          // Enable torch if available for low light
-          torch: false
-        },
-        audio: false
-      };
+// Request camera with optimal settings for QR scanning
+       const constraints = {
+         video: {
+           facingMode: state.currentFacingMode,
+           width: { ideal: 1920, max: 1920 },
+           height: { ideal: 1080, max: 1080 },
+           focusMode: 'continuous',
+           exposureMode: 'continuous'
+         },
+         audio: false
+       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       state.stream = stream;
@@ -242,15 +242,21 @@
       const videoTrack = stream.getVideoTracks()[0];
       const capabilities = videoTrack.getCapabilities();
 
-      // Try to enable low-light boost if supported
-      if ('lowLightBoost' in capabilities) {
-        try {
-          await videoTrack.applyConstraints({ advanced: [{ lowLightBoost: true }] });
-          console.log('[SCANNER] Low light boost enabled');
-        } catch (e) {
-          console.log('[SCANNER] Low light boost not available');
-        }
-      }
+// Try to enable low-light boost if supported
+       if ('lowLightBoost' in capabilities) {
+         try {
+           await videoTrack.applyConstraints({ advanced: [{ lowLightBoost: true }] });
+           console.log('[SCANNER] Low light boost enabled');
+         } catch (e) {
+           console.log('[SCANNER] Low light boost not available');
+         }
+       }
+
+       // Apply mirror transform for front camera
+       if (state.currentFacingMode === 'user') {
+         videoEl.style.transform = 'scaleX(-1)';
+         videoEl.style.webkitTransform = 'scaleX(-1)';
+       }
 
       // Set exposure and focus manually if supported
       if ('exposureCompensation' in capabilities) {
@@ -517,176 +523,217 @@
      return new ImageData(processed, width, height);
    }
 
-   function handleQRDetected(decodedText) {
-    updateScanningStatus('✅ QR Terdeteksi!');
-    console.log('[SCAN] Raw text:', decodedText);
+async function handleQRDetected(decodedText) {
+     updateScanningStatus('✅ QR Terdeteksi!');
+     console.log('[SCAN] Raw text:', decodedText);
 
-    if (state.isProcessingScan) {
-      return;
-    }
-    state.isProcessingScan = true;
+     const now = Date.now();
+     const raw = decodedText.trim();
+     let qrData;
 
-    const raw = decodedText.trim();
-    let qrData;
+     // If raw is all digits (legacy numeric ID), treat as raw string (avoid JSON.parse number precision loss)
+     if (/^\d+$/.test(raw)) {
+       console.log('[SCAN] Numeric ID format (legacy)');
+       qrData = { scan_id: raw };
+     } else {
+       try {
+         const parsed = JSON.parse(raw);
+         if (typeof parsed === 'object' && parsed !== null) {
+           qrData = parsed;
+         } else {
+           console.log('[SCAN] Primitive JSON value');
+           qrData = { scan_id: String(parsed) };
+         }
+       } catch (e) {
+         console.log('[SCAN] Non-JSON text (legacy)');
+         qrData = { scan_id: raw };
+       }
+     }
 
-    // If raw is all digits (legacy numeric ID), treat as raw string (avoid JSON.parse number precision loss)
-    if (/^\d+$/.test(raw)) {
-      console.log('[SCAN] Numeric ID format (legacy)');
-      qrData = { scan_id: raw };
-    } else {
-      try {
-        const parsed = JSON.parse(raw);
-        if (typeof parsed === 'object' && parsed !== null) {
-          qrData = parsed;
-        } else {
-          console.log('[SCAN] Primitive JSON value');
-          qrData = { scan_id: String(parsed) };
+     console.log('[SCAN] Parsed qrData:', qrData);
+     updateScanningStatus('✅ Memproses...');
+
+// Fill missing fields for legacy/partial data
+      if (!qrData.timestamp) qrData.timestamp = new Date().toISOString();
+      if (!qrData.tenant_id) qrData.tenant_id = state.deviceInfo ? state.deviceInfo.tenant_id : 'unknown';
+      if (!qrData.signature) qrData.signature = 'legacy-' + qrData.scan_id;
+
+      // Auto-detect masuk/pulang if not specified
+      if (!qrData.type && state.isOnline && state.deviceRegistered) {
+        try {
+          const statusResponse = await fetch(`${CONFIG.API_BASE}/scanner/check-status?scan_id=${qrData.scan_id}`);
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json();
+            if (statusData.has_masuk && !statusData.has_pulang) {
+              qrData.type = 'pulang';
+              showToast('Auto: Absen Pulang', 'info', 2000);
+            } else if (!statusData.has_masuk) {
+              qrData.type = 'masuk';
+            }
+          }
+        } catch (e) {
+          console.log('[SCAN] Could not check status, defaulting to masuk');
+          qrData.type = 'masuk';
         }
-      } catch (e) {
-        console.log('[SCAN] Non-JSON text (legacy)');
-        qrData = { scan_id: raw };
+      } else if (!qrData.type) {
+        qrData.type = 'masuk';
       }
-    }
 
-    console.log('[SCAN] Parsed qrData:', qrData);
-    updateScanningStatus('✅ Memproses...');
+     // Non-blocking: Check cooldown per scan_id only
+     const scanId = qrData.scan_id;
+     if (state.lastScanTime[scanId] && (now - state.lastScanTime[scanId] < CONFIG.QR_SCAN_COOLDOWN)) {
+       showToast(`Absensi ${scanId} sudah dicatat`, 'warning');
+       delete state.processingScans[scanId]; // Cleanup
+       updateScanningStatus('Status: Menunggu QR...');
+       return;
+     }
+     // Per-scan_id processing check (non-blocking)
+     if (state.processingScans[scanId]) {
+       console.log('[SCAN] Skipping - already processing:', scanId);
+       return;
+     }
+     state.processingScans[scanId] = true;
+     state.lastScanTime[scanId] = now;
 
-    // Fill missing fields for legacy/partial data
-    if (!qrData.timestamp) qrData.timestamp = new Date().toISOString();
-    if (!qrData.tenant_id) qrData.tenant_id = state.deviceInfo ? state.deviceInfo.tenant_id : 'unknown';
-    if (!qrData.signature) qrData.signature = 'legacy-' + qrData.scan_id;
-    if (!qrData.type) qrData.type = 'masuk';
+     // Check expiry if provided
+     if (qrData.expiry && new Date(qrData.expiry) < new Date()) {
+       showToast('QR code sudah kadaluwarsa', 'error');
+       delete state.processingScans[scanId]; // Cleanup
+       updateScanningStatus('Status: Menunggu QR...');
+       return;
+     }
 
-    const now = Date.now();
-    const scanId = qrData.scan_id;
-    if (state.lastScanTime[scanId] && (now - state.lastScanTime[scanId] < CONFIG.QR_SCAN_COOLDOWN)) {
-      showToast(`Absensi ${scanId} sudah dicatat`, 'warning');
-      state.isProcessingScan = false;
-      updateScanningStatus('Status: Menunggu QR...');
-      return;
-    }
+     playBeep();
+     if (navigator.vibrate) navigator.vibrate(200);
 
-    // Check expiry if provided
-    if (qrData.expiry && new Date(qrData.expiry) < new Date()) {
-      showToast('QR code sudah kadaluwarsa', 'error');
-      state.isProcessingScan = false;
-      updateScanningStatus('Status: Menunggu QR...');
-      return;
-    }
-
-    playBeep();
-    if (navigator.vibrate) navigator.vibrate(200);
-
-    processAttendance(qrData).then(() => {
-      updateScanningStatus('✅ Berhasil! Menunggu QR berikutnya...');
-      setTimeout(() => updateScanningStatus('Status: Menunggu QR...'), 2000);
-    }).catch(err => {
-      console.error('[SCAN] Process error:', err);
-      updateScanningStatus('Status: Menunggu QR...');
-    }).finally(() => {
-      state.isProcessingScan = false;
-    });
+     processAttendance(qrData).finally(() => {
+       delete state.processingScans[scanId]; // Cleanup after processing
+     });
    }
 
    // ==================== ATTENDANCE PROCESSING ====================
-  async function processAttendance(qrData) {
-    state.lastScanTime[qrData.scan_id] = Date.now();
+async function processAttendance(qrData) {
+     const scanTimestamp = new Date().toISOString();
+     const attendanceData = {
+       scan_id: qrData.scan_id,
+       timestamp: scanTimestamp,
+       type: qrData.type === 'pulang' ? 'pulang' : 'masuk',
+       device_id: state.deviceInfo ? state.deviceInfo.device_id : 'unknown',
+       tenant_id: qrData.tenant_id,
+       signature: qrData.signature,
+       expiry: qrData.expiry || null,
+       offline_validated: !state.isOnline,
+       syncStatus: state.isOnline ? 'synced' : 'pending',
+       createdAt: new Date().toISOString()
+     };
 
-    const scanTimestamp = new Date().toISOString();
-    const attendanceData = {
-      scan_id: qrData.scan_id,
-      timestamp: scanTimestamp,
-      type: qrData.type === 'pulang' ? 'pulang' : 'masuk',
-      device_id: state.deviceInfo ? state.deviceInfo.device_id : 'unknown',
-      tenant_id: qrData.tenant_id,
-      signature: qrData.signature,
-      expiry: qrData.expiry || null,
-      offline_validated: !state.isOnline,
-      syncStatus: state.isOnline ? 'synced' : 'pending',
-      createdAt: new Date().toISOString()
-    };
+     if (state.isOnline && state.deviceRegistered) {
+       try {
+         const response = await fetch(`${CONFIG.API_BASE}/scanner/attendance`, {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify(attendanceData)
+         });
 
-    if (state.isOnline && state.deviceRegistered) {
-      try {
-        const response = await fetch(`${CONFIG.API_BASE}/scanner/attendance`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(attendanceData)
-        });
+         const result = await response.json();
+         if (response.ok && result.success) {
+           console.log(`[SCANNER] Attendance recorded: ${qrData.scan_id}`);
+           showToast(`Absen ${qrData.type === 'pulang' ? 'Pulang' : 'Masuk'} - ${qrData.scan_id} BERHASIL`, 'success', 5000);
+           updateScanningStatus('✅ Berhasil! Menunggu QR berikutnya...');
+           setTimeout(() => updateScanningStatus('Status: Menunggu QR...'), 2000);
+           return;
+         } else {
+           console.error('[SCANNER] Server rejected:', result.message);
+           showToast(`Gagal: ${result.message || 'Unknown error'}`, 'error', 5000);
+           updateScanningStatus('Status: Menunggu QR...');
+         }
+       } catch (error) {
+         console.error('[SCANNER] Network error:', error);
+         showToast('Network error: ' + error.message, 'error', 5000);
+         updateScanningStatus('Status: Menunggu QR...');
+       }
+     } else {
+       await addToQueue(attendanceData);
+       showToast(`Offline - Data ${qrData.scan_id} disimpan lokal`, 'warning', 5000);
+       updateScanningStatus('✅ Offline - Data tersimpan');
+       setTimeout(() => updateScanningStatus('Status: Menunggu QR...'), 2000);
+     }
+   }
 
-        const result = await response.json();
-        if (response.ok && result.success) {
-          console.log(`[SCANNER] Attendance recorded: ${qrData.scan_id}`);
-          return;
-        } else {
-          console.error('[SCANNER] Server rejected:', result.message);
-        }
-      } catch (error) {
-        console.error('[SCANNER] Network error:', error);
-      }
-    }
+// ==================== SYNC ====================
+   async function attemptSync() {
+     if (!state.isOnline || !state.deviceRegistered) return;
 
-    await addToQueue(attendanceData);
-    showToast('Data disimpan offline', 'warning');
-  }
+     const pending = await getPendingItems();
+     const toSync = pending.filter(item => item.syncStatus === 'pending');
 
-  // ==================== SYNC ====================
-  async function attemptSync() {
-    if (!state.isOnline || !state.deviceRegistered) return;
+     if (toSync.length === 0) return;
 
-    const pending = await getPendingItems();
-    const toSync = pending.filter(item => item.syncStatus === 'pending');
+     console.log(`[SYNC] Attempting to sync ${toSync.length} items`);
 
-    if (toSync.length === 0) return;
+     for (const item of toSync) {
+       // Skip very old items (older than 24 hours)
+       const itemAge = Date.now() - new Date(item.createdAt).getTime();
+       if (itemAge > CONFIG.MAX_RETRY_AGE) {
+         console.log('[SYNC] Skipping old item:', item.scan_id);
+         continue;
+       }
 
-    console.log(`[SYNC] Attempting to sync ${toSync.length} items`);
+       try {
+         const response = await fetch(`${CONFIG.API_BASE}/scanner/attendance`, {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({
+             scan_id: item.scan_id,
+             timestamp: item.timestamp,
+             type: item.type,
+             device_id: item.device_id,
+             signature: item.signature,
+             offline_validated: item.offline_validated,
+             expiry: item.expiry
+           })
+         });
 
-    for (const item of toSync) {
-      try {
-        const response = await fetch(`${CONFIG.API_BASE}/scanner/attendance`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            scan_id: item.scan_id,
-            timestamp: item.timestamp,
-            type: item.type,
-            device_id: item.device_id,
-            signature: item.signature,
-            offline_validated: item.offline_validated,
-            expiry: item.expiry
-          })
-        });
+         const result = await response.json();
+         if (response.ok && result.success) {
+           await deleteFromQueue(item.id);
+           console.log(`[SYNC] Synced: ${item.scan_id}`);
+           showToast(`Synced: ${item.scan_id}`, 'success', 1500);
+         } else {
+           console.error(`[SYNC] Failed: ${item.scan_id}`, result.message);
+         }
+       } catch (error) {
+         console.error(`[SYNC] Error: ${item.scan_id}`, error.message);
+       }
+     }
 
-        const result = await response.json();
-        if (response.ok && result.success) {
-          await deleteFromQueue(item.id);
-          console.log(`[SYNC] Synced: ${item.scan_id}`);
-          showToast(`Synced: ${item.scan_id}`, 'success', 1500);
-        } else {
-          console.error(`[SYNC] Failed: ${item.scan_id}`, result.message);
-        }
-      } catch (error) {
-        console.error(`[SYNC] Error: ${item.scan_id}`, error.message);
-      }
-    }
+     updatePendingCount();
+   }
 
-    updatePendingCount();
-  }
+   // ==================== BACKGROUND SYNC ====================
+   async function registerBackgroundSync() {
+     if (!('serviceWorker' in navigator) || !('SyncManager' in window)) {
+       console.log('[SW] Background sync not supported');
+       return;
+     }
 
-  // ==================== BACKGROUND SYNC ====================
-  async function registerBackgroundSync() {
-    if (!('serviceWorker' in navigator) || !('SyncManager' in window)) {
-      console.log('[SW] Background sync not supported');
-      return;
-    }
+     try {
+       const registration = await navigator.serviceWorker.ready;
+       console.log('[SW] Ready for background sync');
 
-    try {
-      const registration = await navigator.serviceWorker.ready;
-      console.log('[SW] Ready for background sync');
-    } catch (error) {
-      console.log('[SW] Service worker not ready:', error);
-    }
-  }
+       // Register sync event
+       if ('sync' in registration) {
+         try {
+           await registration.sync.register('sync-attendance');
+           console.log('[SW] Background sync registered');
+         } catch (syncError) {
+           console.log('[SW] Sync registration failed:', syncError);
+         }
+       }
+     } catch (error) {
+       console.log('[SW] Service worker not ready:', error);
+     }
+   }
 
   // ==================== DEVICE REGISTRATION ====================
   async function loadDeviceInfo() {
@@ -857,32 +904,42 @@
       initScanner();
     });
 
-    document.getElementById('torch-btn')?.addEventListener('click', async () => {
-      if (state.stream) {
-        try {
-          const videoTrack = state.stream.getVideoTracks()[0];
-          const capabilities = videoTrack.getCapabilities();
-          if ('torch' in capabilities) {
-            const currentTorch = videoTrack.getSettings().torch || false;
-            await videoTrack.applyConstraints({ advanced: [{ torch: !currentTorch }] });
-            const btn = document.getElementById('torch-btn');
-            if (btn) {
-              btn.classList.toggle('bg-yellow-600', !currentTorch);
-              btn.classList.toggle('bg-gray-600', currentTorch);
-              btn.title = !currentTorch ? 'Turn off torch' : 'Toggle flashlight';
-            }
-            showToast(!currentTorch ? 'Torch ON' : 'Torch OFF', 'info', 1500);
-          } else {
-            showToast('Torch tidak didukung oleh kamera ini', 'warning');
-          }
-        } catch (e) {
-          console.error('[TORCH] Error toggling torch:', e);
-          showToast('Gagal mengubah torch', 'error');
-        }
-      } else {
-        showToast('Kamera belum aktif', 'warning');
-      }
-    });
+document.getElementById('torch-btn')?.addEventListener('click', async () => {
+       if (state.stream) {
+         try {
+           const videoTrack = state.stream.getVideoTracks()[0];
+           const capabilities = videoTrack.getCapabilities();
+           if ('torch' in capabilities) {
+             const currentTorch = videoTrack.getSettings().torch || false;
+             await videoTrack.applyConstraints({ advanced: [{ torch: !currentTorch }] });
+             const btn = document.getElementById('torch-btn');
+             if (btn) {
+               btn.classList.toggle('bg-yellow-600', !currentTorch);
+               btn.classList.toggle('bg-gray-600', currentTorch);
+               btn.title = !currentTorch ? 'Turn off torch' : 'Toggle flashlight';
+             }
+             showToast(!currentTorch ? 'Torch ON' : 'Torch OFF', 'info', 1500);
+           } else {
+             showToast('Torch tidak didukung oleh kamera ini', 'warning');
+           }
+         } catch (e) {
+           console.error('[TORCH] Error toggling torch:', e);
+           showToast('Gagal mengubah torch: ' + e.message, 'error');
+         }
+       } else {
+         showToast('Kamera belum aktif', 'warning');
+       }
+     });
+
+     // Switch camera button
+     document.getElementById('switch-camera-btn')?.addEventListener('click', async () => {
+       if (state.stream) {
+         state.currentFacingMode = state.currentFacingMode === 'environment' ? 'user' : 'environment';
+         await stopScanner();
+         showToast(`Beralih ke kamera ${state.currentFacingMode === 'environment' ? 'belakang' : 'depan'}`, 'info');
+         await initScanner();
+       }
+     });
 
     document.getElementById('close-modal').addEventListener('click', () => {
       document.getElementById('scan-result-modal').classList.add('hidden');
