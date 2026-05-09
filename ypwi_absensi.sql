@@ -174,13 +174,28 @@ CREATE TABLE `tenants` (
   `tenant_id` varchar(20) NOT NULL,
   `nama_sekolah` varchar(100) NOT NULL,
   `absensi_method` enum('personal','gateway') NOT NULL DEFAULT 'personal',
-  `wa_api_key` varchar(255) DEFAULT NULL,
+  `use_central_rules` tinyint(1) DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+
+--
+-- Table structure for table `tenant_locations`
+--
+
+CREATE TABLE `tenant_locations` (
+  `id` int(11) NOT NULL,
+  `tenant_id` varchar(20) NOT NULL,
+  `location_name` varchar(100) NOT NULL,
   `latitude` decimal(10,8) DEFAULT NULL,
   `longitude` decimal(11,8) DEFAULT NULL,
   `location_radius` int(11) DEFAULT 100,
-  `location_name` varchar(255) DEFAULT NULL
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -251,6 +266,14 @@ ALTER TABLE `tenants`
   ADD KEY `idx_tenant_id` (`tenant_id`);
 
 --
+-- Indexes for table `tenant_locations`
+--
+ALTER TABLE `tenant_locations`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_tenant_id` (`tenant_id`),
+  ADD KEY `idx_is_active` (`is_active`);
+
+--
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
@@ -296,6 +319,12 @@ ALTER TABLE `users`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `tenant_locations`
+--
+ALTER TABLE `tenant_locations`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- Constraints for dumped tables
 --
 
@@ -319,6 +348,12 @@ ALTER TABLE `teacher_assignments`
 ALTER TABLE `users`
   ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`guru_id`) REFERENCES `teachers` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `users_ibfk_2` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`tenant_id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `tenant_locations`
+--
+ALTER TABLE `tenant_locations`
+  ADD CONSTRAINT `tenant_locations_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`tenant_id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

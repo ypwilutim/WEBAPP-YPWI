@@ -4,36 +4,135 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Admin - YPWI Lutim</title>
+
+  <!-- Open Graph Meta Tags -->
+  <meta property="og:title" content="Dashboard Admin - Sistem Absensi YPWI Lutim">
+  <meta property="og:description" content="Dashboard Admin Sistem Absensi Guru YPWI Lutim - Kelola data guru, penggajian, dokumen HR, dan WhatsApp broadcast">
+  <meta property="og:image" content="/assets/images/thumbnail/search teacher.svg">
+  <meta property="og:url" content="">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="YPWI Lutim Absensi">
+
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Dashboard Admin - Sistem Absensi YPWI Lutim">
+  <meta name="twitter:description" content="Dashboard Admin Sistem Absensi Guru YPWI Lutim - Kelola data guru, penggajian, dokumen HR, dan WhatsApp broadcast">
+  <meta name="twitter:image" content="/assets/images/thumbnail/search teacher.svg">
+
+  <!-- General Meta Tags -->
+  <meta name="description" content="Dashboard Admin Sistem Absensi Guru YPWI Lutim - Kelola data guru, penggajian, dokumen HR, dan WhatsApp broadcast">
+  <meta name="keywords" content="admin dashboard, sistem absensi, YPWI Lutim, manajemen guru, penggajian, HR">
+  <meta name="author" content="YPWI Lutim">
+
+  <script>
+    // Set dynamic og:url based on current location
+    document.querySelector('meta[property="og:url"]').setAttribute('content', window.location.href);
+  </script>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link rel="icon" href="assets/images/YPWI LOGO HITAM.png" type="image/png">
   <link rel="manifest" href="manifest.json">
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <style>
+   <!-- Leaflet CSS -->
+   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+   <!-- Leaflet JS -->
+   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+   <!-- QRCode.js for QR generation -->
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+     <style>
     body { font-family: 'Inter', sans-serif; }
     .nav-active { background-color: #3b82f6; color: white; }
     .modal { display: none; }
     .modal.show { display: flex; }
     .chart-placeholder { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: bold; }
+
+    /* Responsive sidebar styling */
+    aside {
+      position: fixed;
+      height: 100vh;
+      top: 0;
+      left: 0;
+      width: 16rem;
+      overflow-y: auto;
+      transform: translateX(0);
+      transition: transform 0.3s ease;
+      z-index: 40;
+    }
+
+    /* Sidebar overlay for mobile */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 30;
+    }
+
+    /* Mobile sidebar hidden */
+    @media (max-width: 768px) {
+      aside {
+        transform: translateX(-100%);
+        width: 16rem;
+      }
+
+      aside.mobile-open {
+        transform: translateX(0);
+      }
+
+      .sidebar-overlay {
+        display: block;
+      }
+    }
+
+    /* Adjust main content to account for fixed sidebar */
+    main {
+      margin-left: 16rem;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 2rem;
+      transition: margin-left 0.3s ease;
+    }
+
+    /* Mobile main content */
+    @media (max-width: 768px) {
+      main {
+        margin-left: 0;
+        padding: 1rem;
+      }
+
+      /* Improve logo spacing on mobile */
+      aside .flex.items-center.space-x-4 {
+        gap: 0.75rem;
+      }
+    }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
-  <div class="flex min-h-screen">
+  <div class="min-h-screen">
+    <!-- Mobile Menu Button -->
+    <div class="fixed top-4 left-4 z-50 md:hidden">
+      <button id="mobileMenuBtn" class="bg-white p-2 rounded-lg shadow-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+        <i class="fas fa-bars text-gray-700 text-lg"></i>
+      </button>
+    </div>
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <!-- Sidebar -->
     <aside class="w-64 bg-white shadow-lg border-r">
-      <div class="p-6 border-b">
-        <div class="flex items-center space-x-3">
-          <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-            <i class="fas fa-chart-line text-white"></i>
-          </div>
-          <div>
-            <h1 class="text-xl font-bold text-gray-900">YPWI Lutim Admin</h1>
-            <p class="text-sm text-gray-500">Dashboard Panel</p>
+        <div class="p-6 border-b">
+          <div class="flex items-center space-x-4">
+            <img src="assets/images/YPWI LOGO HITAM.png" alt="YPWI Logo" class="w-10 h-10 object-contain">
+            <div>
+              <h1 class="text-xl font-bold text-gray-900">YPWI Lutim</h1>
+              <p class="text-sm text-gray-500">Admin Dashboard</p>
+            </div>
           </div>
         </div>
-      </div>
 
       <nav class="p-4 space-y-2">
         <button class="nav-item nav-active w-full text-left flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-100" data-tab="dashboard">
@@ -72,14 +171,14 @@
     </aside>
 
     <!-- Main Content -->
-    <main class="flex-1 p-8">
+    <main>
       <!-- Header -->
-      <div class="flex justify-between items-center mb-8">
-        <div>
-          <h2 id="pageTitle" class="text-3xl font-bold text-gray-900">Dashboard</h2>
+      <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-8 gap-4">
+        <div class="md:pl-12 lg:pl-0"> <!-- Add padding on mobile to account for hamburger menu -->
+          <h2 id="pageTitle" class="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h2>
           <p class="text-gray-600 mt-1">Selamat datang kembali, <span id="adminName">Admin</span></p>
         </div>
-        <div class="flex items-center space-x-4">
+        <div class="flex flex-col md:flex-row items-start md:items-center space-y-2 md:space-y-0 md:space-x-4">
           <span class="text-sm text-gray-500" id="currentDate"></span>
           <div class="flex items-center space-x-2">
             <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
@@ -241,7 +340,7 @@
                   <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Waktu</th>
                   <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                   <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Metode</th>
-                </tr> 
+                </tr>
               </thead>
               <tbody id="attendanceTable" class="divide-y divide-gray-100">
                 <tr>
@@ -317,12 +416,12 @@
               </h4>
 
               <form id="singleWhatsAppForm" class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Guru</label>
-                  <input type="text" id="singleTeacherInput" list="teacherList" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ketik nama guru..." required autocomplete="off">
-                  <datalist id="teacherList"></datalist>
-                  <input type="hidden" id="singleTeacherSelect" name="teacherId">
-                </div>
+    <div class="relative">
+      <label class="block text-sm font-medium text-gray-700 mb-2">Cari Guru</label>
+      <input type="text" id="singleTeacherInput" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ketik nama guru..." autocomplete="off">
+      <input type="hidden" id="singleTeacherSelect" name="teacherId">
+      <div id="teacherSuggestions" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto hidden"></div>
+    </div>
 
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Pesan WhatsApp</label>
@@ -365,170 +464,176 @@
         </div>
       </div>
 
-      <!-- Documents Tab -->
-      <div id="documentsTab" class="tab-content hidden">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-6">Dokumen HR</h3>
-          <div class="text-center py-12 text-gray-500">
-            <i class="fas fa-file-alt text-4xl mb-4"></i>
-            <p>Manajemen dokumen HR akan diimplementasikan</p>
-          </div>
-        </div>
-      </div>
+       <!-- Documents Tab -->
+       <div id="documentsTab" class="tab-content hidden">
+         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+           <h3 class="text-lg font-semibold text-gray-900 mb-6">Dokumen HR</h3>
+           <div class="text-center py-12 text-gray-500">
+             <i class="fas fa-file-alt text-4xl mb-4"></i>
+             <p>Manajemen dokumen HR akan diimplementasikan</p>
+           </div>
+         </div>
+       </div>
 
-      <!-- QR Generator Tab -->
-      <div id="qr-generatorTab" class="tab-content hidden">
-        <div class="space-y-6">
-          <!-- Header -->
-          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="text-2xl font-bold text-gray-900">QR Code Scanner & Generator</h3>
-                <p class="text-gray-600 mt-1">Buat QR code untuk absensi offline dan pantau status scanner device</p>
-              </div>
-              <div class="flex items-center space-x-2">
-                <a href="/scanner.html" target="_blank" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
-                  <i class="fas fa-external-link-alt mr-2"></i>
-                  Buka Scanner App
-                </a>
-              </div>
-            </div>
-          </div>
+       <!-- QR Generator Tab -->
+       <div id="qr-generatorTab" class="tab-content hidden">
+         <div class="space-y-6">
+           <!-- Header -->
+           <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+             <div class="flex items-center justify-between">
+               <div>
+                 <h3 class="text-2xl font-bold text-gray-900">QR Code Scanner & Generator</h3>
+                 <p class="text-gray-600 mt-1">Buat QR code untuk absensi offline dan pantau status scanner device</p>
+               </div>
+               <div class="flex items-center space-x-2">
+                 <a href="/scanner.html" target="_blank" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                   <i class="fas fa-external-link-alt mr-2"></i>
+                   Buka Scanner App
+                 </a>
+               </div>
+             </div>
+           </div>
 
-          <!-- Two Column Layout -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- QR Generator Panel -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <i class="fas fa-qrcode text-blue-600 mr-2"></i>
-                Generate QR Code untuk Guru
-              </h4>
+           <!-- Two Column Layout -->
+           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+             <!-- QR Generator Panel -->
+             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+               <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                 <i class="fas fa-qrcode text-blue-600 mr-2"></i>
+                 Generate QR Code untuk Guru
+               </h4>
 
-              <form id="qr-generate-form" class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Cari Guru</label>
-                  <input type="text" id="qr-teacher-search" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ketik nama atau NIK guru..." autocomplete="off">
-                  <input type="hidden" id="qr-teacher-id">
-                  <div id="qr-teacher-suggestions" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto hidden mt-1"></div>
-                </div>
+               <form id="qr-generate-form" class="space-y-4">
+                 <div>
+                   <label class="block text-sm font-medium text-gray-700 mb-2">Cari Guru</label>
+                   <input type="text" id="qr-teacher-search" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Ketik nama atau NIK guru..." autocomplete="off">
+                   <input type="hidden" id="qr-teacher-id">
+                   <div id="qr-teacher-suggestions" class="absolute z-10 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto hidden mt-1"></div>
+                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Scan ID</label>
-                    <input type="text" id="qr-scan-id" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" readonly>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nama Guru</label>
-                    <input type="text" id="qr-teacher-name" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" readonly>
-                  </div>
-                </div>
+                 <div class="grid grid-cols-2 gap-4">
+                   <div>
+                     <label class="block text-sm font-medium text-gray-700 mb-2">Scan ID</label>
+                     <input type="text" id="qr-scan-id" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" readonly>
+                   </div>
+                   <div>
+                     <label class="block text-sm font-medium text-gray-700 mb-2">Nama Guru</label>
+                     <input type="text" id="qr-teacher-name" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" readonly>
+                   </div>
+                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Sekolah</label>
-                    <select id="qr-tenant-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                      <option value="">Pilih Sekolah</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Expiry (jam)</label>
-                    <input type="number" id="qr-expiry-hours" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" value="24" min="1" max="168">
-                  </div>
-                </div>
+                 <div class="grid grid-cols-2 gap-4">
+                   <div>
+                     <label class="block text-sm font-medium text-gray-700 mb-2">Sekolah</label>
+                     <input type="text" id="qr-school" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50" readonly>
+                   </div>
+                   <div>
+                     <label class="block text-sm font-medium text-gray-700 mb-2">Masa Berlaku (jam)</label>
+                     <select id="qr-expiry" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                       <option value="2">2 jam</option>
+                       <option value="6">6 jam</option>
+                       <option value="12">12 jam</option>
+                       <option value="24" selected>24 jam</option>
+                       <option value="72">3 hari</option>
+                     </select>
+                   </div>
+                 </div>
 
-                <button type="submit" id="generate-qr-btn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                  <i class="fas fa-qrcode mr-2"></i>Generate QR Code
-                </button>
-              </form>
+                 <button type="button" id="generate-qr-btn" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                   <i class="fas fa-qrcode mr-2"></i>
+                   Generate QR Code
+                 </button>
+               </form>
 
-              <div id="qr-result" class="mt-6 hidden">
-                <h5 class="text-sm font-medium text-gray-700 mb-3">QR Code Preview</h5>
-                <div id="qr-image-container" class="flex justify-center mb-3"></div>
-                <p class="text-xs text-gray-500 mb-3">
-                  QR code berlaku sampai: <span id="qr-expiry-time" class="font-semibold"></span>
-                </p>
-                <div class="flex space-x-2">
-                  <button id="download-qr" class="flex-1 bg-green-600 text-white py-2 px-3 rounded text-sm hover:bg-green-700">
-                    <i class="fas fa-download mr-1"></i> Download
-                  </button>
-                  <button id="print-qr" class="flex-1 bg-gray-600 text-white py-2 px-3 rounded text-sm hover:bg-gray-700">
-                    <i class="fas fa-print mr-1"></i> Print
-                  </button>
-                </div>
-                <p class="text-xs text-red-600 mt-2">
-                  <i class="fas fa-exclamation-triangle mr-1"></i>
-                  Jangan bagikan QR code ini ke orang lain! Berlaku 1x penggunaan per guru per hari.
-                </p>
-              </div>
-            </div>
+               <!-- QR Preview -->
+               <div id="qr-preview" class="mt-6 p-4 border-2 border-dashed border-gray-300 rounded-lg text-center hidden">
+                 <h5 class="text-sm font-medium text-gray-700 mb-3">QR Code Preview</h5>
+                 <div id="qr-image-container" class="flex justify-center mb-3"></div>
+                 <p class="text-xs text-gray-500 mb-3">
+                   QR code ini berlaku sampai: <span id="qr-expiry-time" class="font-semibold"></span>
+                 </p>
+                 <div class="flex space-x-2">
+                   <button id="download-qr" class="flex-1 bg-green-600 text-white py-2 px-3 rounded text-sm hover:bg-green-700">
+                     <i class="fas fa-download mr-1"></i> Download
+                   </button>
+                   <button id="print-qr" class="flex-1 bg-gray-600 text-white py-2 px-3 rounded text-sm hover:bg-gray-700">
+                     <i class="fas fa-print mr-1"></i> Print
+                   </button>
+                 </div>
+                 <p class="text-xs text-red-600 mt-2">
+                   <i class="fas fa-exclamation-triangle mr-1"></i>
+                   Jangan bagikan QR code ini ke orang lain! Berlaku 1x penggunaan per guru per hari.
+                 </p>
+               </div>
+             </div>
 
-            <!-- Scanner Device Status Panel -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <i class="fas fa-tablet-alt text-green-600 mr-2"></i>
-                Status Scanner Device
-              </h4>
+             <!-- Scanner Device Status Panel -->
+             <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+               <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                 <i class="fas fa-tablet-alt text-green-600 mr-2"></i>
+                 Status Scanner Device
+               </h4>
 
-              <div class="mb-4">
-                <button id="refresh-devices" class="text-sm text-blue-600 hover:text-blue-800">
-                  <i class="fas fa-sync-alt mr-1"></i> Refresh
-                </button>
-              </div>
+               <div class="mb-4">
+                 <button id="refresh-devices" class="text-sm text-blue-600 hover:text-blue-800">
+                   <i class="fas fa-sync-alt mr-1"></i> Refresh
+                 </button>
+               </div>
 
-              <div id="devices-list" class="space-y-3">
-                <div class="text-center py-8 text-gray-500">
-                  <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
-                  <p>Memuat data device...</p>
-                </div>
-              </div>
+               <div id="devices-list" class="space-y-3">
+                 <div class="text-center py-8 text-gray-500">
+                   <i class="fas fa-spinner fa-spin text-xl mb-2"></i>
+                   <p>Memuat data device...</p>
+                 </div>
+               </div>
 
-              <!-- Add Device Button -->
-              <div class="mt-6 pt-4 border-t border-gray-200">
-                <button id="add-device-modal-btn" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition flex items-center justify-center">
-                  <i class="fas fa-plus mr-2"></i>
-                  Tambah Scanner Device Baru
-                </button>
-              </div>
-            </div>
-          </div>
+               <!-- Add Device Button -->
+               <div class="mt-6 pt-4 border-t border-gray-200">
+                 <button id="add-device-modal-btn" class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition flex items-center justify-center">
+                   <i class="fas fa-plus mr-2"></i>
+                   Tambah Scanner Device Baru
+                 </button>
+               </div>
+             </div>
+           </div>
 
-          <!-- QR Scan Logs -->
-          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-            <div class="flex justify-between items-center mb-4">
-              <h4 class="text-lg font-semibold text-gray-900 flex items-center">
-                <i class="fas fa-history text-purple-600 mr-2"></i>
-                Log Scan QR Terbaru
-              </h4>
-              <a href="#" onclick="switchTab('attendance'); return false;" class="text-sm text-blue-600 hover:text-blue-800">
-                Lihat Semua
-              </a>
-            </div>
-            <div class="overflow-x-auto">
-              <table class="w-full">
-                <thead class="bg-gray-50 border-b border-gray-100">
-                  <tr>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Guru</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Sekolah</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Device</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Waktu</th>
-                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
-                  </tr>
-                </thead>
-                <tbody id="qr-logs-table" class="divide-y divide-gray-100">
-                  <tr>
-                    <td colspan="5" class="px-4 py-8 text-center text-gray-500">
-                      <i class="fas fa-spinner fa-spin mr-2"></i>
-                      Memuat logs...
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
+           <!-- Scanner Logs (Optional - quick view) -->
+           <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+             <div class="flex justify-between items-center mb-4">
+               <h4 class="text-lg font-semibold text-gray-900 flex items-center">
+                 <i class="fas fa-history text-purple-600 mr-2"></i>
+                 Log Scan QR Terbaru
+               </h4>
+               <a href="#" onclick=" switchTab('attendance'); return false;" class="text-sm text-blue-600 hover:text-blue-800">
+                 Lihat Semua
+               </a>
+             </div>
+             <div class="overflow-x-auto">
+               <table class="w-full">
+                 <thead class="bg-gray-50 border-b border-gray-100">
+                   <tr>
+                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Guru</th>
+                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Sekolah</th>
+                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Device</th>
+                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Waktu</th>
+                     <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                   </tr>
+                 </thead>
+                 <tbody id="qr-logs-table" class="divide-y divide-gray-100">
+                   <tr>
+                     <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                       <i class="fas fa-spinner fa-spin mr-2"></i>
+                       Memuat logs...
+                     </td>
+                   </tr>
+                 </tbody>
+               </table>
+             </div>
+           </div>
+         </div>
+       </div>
 
-      <!-- Settings Tab -->
+       <!-- Settings Tab -->
       <div id="settingsTab" class="tab-content hidden">
         <div class="space-y-6">
           <!-- Settings Header -->
@@ -631,6 +736,40 @@
               </div>
             </div>
 
+            <!-- Attendance Rules Settings -->
+            <div id="attendanceSetting" class="setting-content hidden p-6">
+              <div class="flex items-center justify-between mb-6">
+                <div>
+                  <h4 class="text-lg font-semibold text-gray-900">Aturan Absensi</h4>
+                  <p class="text-gray-600 text-sm">Kelola jadwal masuk dan pulang</p>
+                </div>
+                <button onclick="showAddRuleModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                  <i class="fas fa-plus mr-2"></i>
+                  Tambah Aturan
+                </button>
+              </div>
+
+              <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                <div class="flex items-start space-x-3">
+                  <i class="fas fa-info-circle text-blue-500 mt-0.5"></i>
+                  <div>
+                    <h5 class="font-medium text-gray-900">Informasi Aturan</h5>
+                    <p class="text-sm text-gray-600 mt-1">
+                      Aturan absensi berlaku berdasarkan prioritas: Aturan sekolah spesifik &rarr; Aturan default sistem.
+                      Pastikan tidak ada konflik jadwal antar aturan.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div id="attendanceRules" class="space-y-4">
+                <div class="text-center py-12">
+                  <i class="fas fa-clock text-4xl text-gray-400 mb-4"></i>
+                  <p class="text-gray-600">Memuat aturan absensi...</p>
+                </div>
+              </div>
+            </div>
+
             <!-- Multiple Locations Settings -->
             <div id="locations-multiSetting" class="setting-content hidden p-6">
               <div class="flex items-center justify-between mb-6">
@@ -658,40 +797,6 @@
                   <i class="fas fa-plus mr-2"></i>
                   Tambah Lokasi Baru
                 </button>
-              </div>
-            </div>
-
-            <!-- Attendance Rules Settings -->
-            <div id="attendanceSetting" class="setting-content hidden p-6">
-              <div class="flex items-center justify-between mb-6">
-                <div>
-                  <h4 class="text-lg font-semibold text-gray-900">Aturan Absensi</h4>
-                  <p class="text-gray-600 text-sm">Kelola jadwal masuk dan pulang</p>
-                </div>
-                <button onclick="showAddRuleModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                  <i class="fas fa-plus mr-2"></i>
-                  Tambah Aturan
-                </button>
-              </div>
-
-              <div class="bg-gray-50 rounded-lg p-4 mb-6">
-                <div class="flex items-start space-x-3">
-                  <i class="fas fa-info-circle text-blue-500 mt-0.5"></i>
-                  <div>
-                    <h5 class="font-medium text-gray-900">Informasi Aturan</h5>
-                    <p class="text-sm text-gray-600 mt-1">
-                      Aturan absensi berlaku berdasarkan prioritas: Aturan sekolah spesifik → Aturan default sistem.
-                      Pastikan tidak ada konflik jadwal antar aturan.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div id="attendanceRules" class="space-y-4">
-                <div class="text-center py-12">
-                  <i class="fas fa-clock text-4xl text-gray-400 mb-4"></i>
-                  <p class="text-gray-600">Memuat aturan absensi...</p>
-                </div>
               </div>
             </div>
 
@@ -861,6 +966,33 @@
               <option value="terlambat">Terlambat</option>
             </select>
           </div>
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Hari Berlaku</label>
+            <div class="grid grid-cols-2 gap-2">
+              <label class="flex items-center">
+                <input type="checkbox" name="hari" value="senin" class="mr-2"> Senin
+              </label>
+              <label class="flex items-center">
+                <input type="checkbox" name="hari" value="selasa" class="mr-2"> Selasa
+              </label>
+              <label class="flex items-center">
+                <input type="checkbox" name="hari" value="rabu" class="mr-2"> Rabu
+              </label>
+              <label class="flex items-center">
+                <input type="checkbox" name="hari" value="kamis" class="mr-2"> Kamis
+              </label>
+              <label class="flex items-center">
+                <input type="checkbox" name="hari" value="jumat" class="mr-2"> Jumat
+              </label>
+              <label class="flex items-center">
+                <input type="checkbox" name="hari" value="sabtu" class="mr-2"> Sabtu
+              </label>
+              <label class="flex items-center">
+                <input type="checkbox" name="hari" value="minggu" class="mr-2"> Minggu
+              </label>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Kosongkan untuk berlaku semua hari</p>
+          </div>
           <div class="flex justify-end space-x-3">
             <button type="button" onclick="hideRuleModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">Batal</button>
             <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Simpan</button>
@@ -890,7 +1022,7 @@
         </div>
 
         <form id="locationForm">
-          <input type="hidden" name="tenant_id" id="locationTenantIdHidden">
+          <input type="hidden" name="tenant_id" id="locationTenantId">
 
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">Nama Sekolah</label>
@@ -1065,10 +1197,10 @@
         </form>
       </div>
     </div>
-  </div>
+   </div>
 
   <!-- Tenant Location Modal -->
-  <div id="tenantLocationModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center hidden">
+  <div id="tenantLocationModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 justify-center items-center hidden">
     <div class="bg-white rounded-lg max-w-md w-full mx-4">
       <div class="p-6">
         <div class="flex items-center justify-between mb-4">
@@ -1117,17 +1249,6 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Latitude</label>
-              <input type="number" step="0.000001" id="locationLat" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="-6.2088">
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Longitude</label>
-              <input type="number" step="0.000001" id="locationLng" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="106.8456">
-            </div>
-          </div>
-
           <!-- Mini Map -->
           <div class="mb-6">
             <label class="block text-sm font-medium text-gray-700 mb-2">Peta Lokasi</label>
@@ -1136,6 +1257,17 @@
                 <i class="fas fa-map-marked-alt text-3xl mb-2"></i>
                 <p>Peta akan muncul setelah koordinat dimasukkan</p>
               </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Latitude</label>
+              <input type="number" step="0.000001" id="locationLat" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="-6.2088">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Longitude</label>
+              <input type="number" step="0.000001" id="locationLng" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="106.8456">
             </div>
           </div>
 
@@ -1214,10 +1346,29 @@
     </div>
   </div>
 
-  <script type="module">
+   <script type="module">
     // Global variables for access across the page
-    let currentUser = null;
-    let authToken = null;
+    window.currentUser = null;
+    window.authToken = null;
+
+    // Simple toast notification function
+    window.showToast = function(message, type = 'info') {
+      // Create toast element
+      const toast = document.createElement('div');
+      toast.className = `fixed top-4 right-4 px-4 py-2 rounded-lg text-white z-50 transition-all duration-300 ${
+        type === 'success' ? 'bg-green-500' :
+        type === 'error' ? 'bg-red-500' :
+        type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+      }`;
+      toast.textContent = message;
+
+      document.body.appendChild(toast);
+
+      // Auto remove after 3 seconds
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    };
 
     // Authentication check with better error handling
     function checkAuthentication() {
@@ -1253,8 +1404,8 @@
         }
 
         // Store user and token globally for page access
-        currentUser = user;
-        authToken = token;
+        window.currentUser = user;
+        window.authToken = token;
         console.log('✅ [AUTH CHECK] Authentication successful for admin:', user.username);
 
       } catch (error) {
@@ -1272,11 +1423,40 @@
     let currentPage = 1;
     let totalPages = 1;
     let pageLimit = 10;
+    let isSubmittingSingle = false;
 
-    const setEl = (id, val) => {
+    // Utility function to set element text content
+    window.setEl = (id, val) => {
       const el = document.getElementById(id);
       if (el) el.textContent = val;
     };
+
+    // Mobile menu functionality
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const sidebar = document.querySelector('aside');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    function toggleMobileMenu() {
+      sidebar.classList.toggle('mobile-open');
+      sidebarOverlay.classList.toggle('hidden');
+    }
+
+    function closeMobileMenu() {
+      sidebar.classList.remove('mobile-open');
+      sidebarOverlay.classList.remove('hidden');
+    }
+
+    mobileMenuBtn.addEventListener('click', toggleMobileMenu);
+    sidebarOverlay.addEventListener('click', closeMobileMenu);
+
+    // Close mobile menu when clicking nav items
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        if (window.innerWidth <= 768) {
+          closeMobileMenu();
+        }
+      });
+    });
 
     // Make functions globally available for onclick attributes
     window.showAddTeacherModal = showAddTeacherModal;
@@ -1294,10 +1474,10 @@
     window.createUser = createUser;
     window.editRule = editRule;
     window.deleteRule = deleteRule;
+    window.showTab = showTab;
     window.showSettingsTab = showSettingsTab;
     window.autoDetectLocation = autoDetectLocation;
     window.editTenantLocation = editTenantLocation;
-    window.autoDetectLocationModal = autoDetectLocationModal;
     window.toggleMap = toggleMap;
     window.centerMapOnCurrent = centerMapOnCurrent;
     window.clearMapMarker = clearMapMarker;
@@ -1306,19 +1486,8 @@
     window.goToPage = goToPage;
     window.prevPage = prevPage;
     window.nextPage = nextPage;
-    window.hideTenantLocationModal = hideTenantLocationModal;
-    window.hideAddDeviceModal = hideAddDeviceModal;
-    window.selectTeacher = selectTeacher;
-    window.editDevice = editDevice;
-    window.changeDeviceStatus = changeDeviceStatus;
-    window.deleteDevice = deleteDevice;
-    window.showAddLocationModal = showAddLocationModal;
-    window.toggleLocationStatus = toggleLocationStatus;
-    window.deleteTenantLocation = deleteTenantLocation;
-    window.loadScannerDevices = loadScannerDevices;
-    window.loadQRLogs = loadQRLogs;
 
-    async function fetchDashboardData() {
+    window.fetchDashboardData = async function() {
       try {
         const response = await fetch('/api/admin/summary', {
           headers: { 'Authorization': `Bearer ${authToken}` }
@@ -1449,10 +1618,11 @@
               <div class="bg-white border border-gray-200 rounded-lg p-4">
                 <div class="flex items-center justify-between">
                   <div>
-                    <h5 class="font-medium text-gray-900">${rule.tenant_id === 'DEFAULT' ? 'Default' : rule.tenant_id} - ${rule.tipe}</h5>
-                    <p class="text-sm text-gray-600">Jam: ${rule.jam_mulai} - ${rule.jam_selesai}</p>
-                    <p class="text-sm text-gray-600">Status: ${rule.status_log === 'tepat_waktu' ? 'Tepat Waktu' : 'Terlambat'}</p>
-                    ${rule.keterangan ? `<p class="text-sm text-gray-500">${rule.keterangan}</p>` : ''}
+                     <h5 class="font-medium text-gray-900">${rule.tenant_id === 'DEFAULT' ? 'Default' : rule.tenant_id} - ${rule.tipe}</h5>
+                     <p class="text-sm text-gray-600">Jam: ${rule.jam_mulai} - ${rule.jam_selesai}</p>
+                     <p class="text-sm text-gray-600">Status: ${rule.status_log === 'tepat_waktu' ? 'Tepat Waktu' : 'Terlambat'}</p>
+                     ${rule.hari ? `<p class="text-sm text-blue-600">Hari: ${rule.hari}</p>` : '<p class="text-sm text-gray-400">Hari: Semua hari</p>'}
+                     ${rule.keterangan ? `<p class="text-sm text-gray-500">${rule.keterangan}</p>` : ''}
                   </div>
                   <div class="flex space-x-2">
                     <button onclick="editRule(${rule.id})" class="text-blue-600 hover:text-blue-800">
@@ -1523,9 +1693,12 @@
         }
 
         const res = await response.json();
+        console.log('Tenants API response:', res);
 
         if (res.success) {
           const items = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
+          console.log('Processed items:', items.length, 'tenants');
+          console.log('First item sample:', items[0]);
           const container = document.getElementById('tenantLocations');
 
           if (items.length === 0) {
@@ -1537,7 +1710,15 @@
           document.getElementById('totalSchools').textContent = items.length;
           document.getElementById('configuredLocations').textContent = items.filter(t => t.latitude && t.longitude).length;
 
-          container.innerHTML = items.map(tenant => `
+          console.log('About to render', items.length, 'tenants');
+          container.innerHTML = items.map(tenant => {
+            console.log('Rendering tenant:', tenant.nama_sekolah, {
+              hasLatitude: !!tenant.latitude,
+              hasLongitude: !!tenant.longitude,
+              latitudeValue: tenant.latitude,
+              longitudeValue: tenant.longitude
+            });
+            return `
             <div class="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow duration-200">
               <div class="flex items-start justify-between mb-4">
                 <div class="flex-1">
@@ -1552,7 +1733,7 @@
                 </div>
               </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
                 <div>
                   <label class="block text-xs font-medium text-gray-500 mb-1">Latitude</label>
                   <div class="text-sm font-mono text-gray-900 bg-gray-50 px-3 py-2 rounded border">
@@ -1577,6 +1758,17 @@
                     ${tenant.latitude && tenant.longitude ? 'Aktif' : 'Tidak Aktif'}
                   </div>
                 </div>
+                <div>
+                  <label class="block text-xs font-medium text-gray-500 mb-1">Aturan Absensi</label>
+                  <div class="flex items-center">
+                    <input type="checkbox"
+                           data-tenant-id="${tenant.tenant_id}"
+                           class="central-rules-checkbox mr-2"
+                           ${tenant.use_central_rules ? 'checked' : ''}
+                           onchange="updateCentralRules('${tenant.tenant_id}', this.checked)">
+                    <span class="text-sm text-gray-900">Pusat (YPWILUTIM)</span>
+                  </div>
+                </div>
               </div>
 
               <div class="flex items-center justify-between pt-4 border-t border-gray-200">
@@ -1595,7 +1787,7 @@
                 </div>
               </div>
             </div>
-          `).join('');
+          `;}).join('');
 
           // Attach event listeners to the newly created buttons
           attachLocationButtonListeners();
@@ -1645,6 +1837,7 @@
         dashboard: 'Dashboard',
         teachers: 'Manajemen Guru',
         attendance: 'Log Kehadiran',
+        whatsapp: 'Pesan WhatsApp',
         payroll: 'Penggajian',
         documents: 'Dokumen HR',
         settings: 'Pengaturan'
@@ -1657,6 +1850,7 @@
       else if (tabName === 'qr-generator') {
         loadScannerDevices();
         loadQRLogs();
+        loadTeacherList();
       }
       else if (tabName === 'settings') {
         showSettingsTab('locations');
@@ -1681,7 +1875,7 @@
 
       // Populate tenant options
       const tenantSelect = document.querySelector('select[name="tenant_id"]');
-      tenantSelect.innerHTML = '<option value="">Pilih Tenant</option>';
+      tenantSelect.innerHTML = '<option value="">Pilih Sekolah</option>';
 
       // Fetch tenants for dropdown
       fetch('/api/admin/tenants', {
@@ -1705,6 +1899,10 @@
 
     function hideRuleModal() {
       document.getElementById('ruleModal').classList.remove('show');
+      // Reset form and clear hari checkboxes
+      document.getElementById('ruleForm').reset();
+      const hariCheckboxes = document.querySelectorAll('input[name="hari"]');
+      hariCheckboxes.forEach(cb => cb.checked = false);
     }
 
     function showLocationModal() {
@@ -1756,6 +1954,19 @@
           form.keterangan.value = rule.keterangan;
           form.status_log.value = rule.status_log;
 
+          // Populate hari checkboxes
+          const hariCheckboxes = form.querySelectorAll('input[name="hari"]');
+          hariCheckboxes.forEach(cb => cb.checked = false); // Reset all
+
+          if (rule.hari) {
+            const ruleDays = rule.hari.split(',').map(d => d.trim());
+            hariCheckboxes.forEach(cb => {
+              if (ruleDays.includes(cb.value)) {
+                cb.checked = true;
+              }
+            });
+          }
+
           // Populate tenant options if not already done
           const tenantSelect = document.querySelector('select[name="tenant_id"]');
           if (tenantSelect.options.length <= 1) {
@@ -1765,7 +1976,7 @@
             .then(res => res.json())
             .then(data => {
               if (data.success) {
-                tenantSelect.innerHTML = '<option value="">Pilih Tenant</option>';
+                tenantSelect.innerHTML = '<option value="">Pilih Sekolah</option>';
                 data.data.forEach(tenant => {
                   const option = document.createElement('option');
                   option.value = tenant.tenant_id;
@@ -1784,6 +1995,35 @@
       }
     }
 
+    window.updateCentralRules = async function(tenantId, checked) {
+      try {
+        const response = await fetch(`/api/admin/tenants/${tenantId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            use_central_rules: checked
+          })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          showToast(`Aturan absensi ${checked ? 'pusat' : 'lokal'} berhasil diupdate`, 'success');
+        } else {
+          showToast('Gagal update aturan absensi', 'error');
+          // Revert checkbox
+          event.target.checked = !checked;
+        }
+      } catch (error) {
+        console.error('Error updating central rules:', error);
+        showToast('Error updating central rules', 'error');
+        // Revert checkbox
+        event.target.checked = !checked;
+      }
+    }
+
     async function editTenantLocation(tenantId) {
       try {
         const response = await fetch('/api/admin/tenants', {
@@ -1796,7 +2036,7 @@
           if (tenant) {
             document.getElementById('locationModalTitle').textContent = 'Edit Lokasi Sekolah';
             const form = document.getElementById('locationForm');
-            document.getElementById('locationTenantIdHidden').value = tenant.tenant_id;
+            document.getElementById('locationTenantId').value = tenant.tenant_id;
             document.getElementById('locationNamaSekolah').value = tenant.nama_sekolah;
             form.latitude.value = tenant.latitude || '';
             form.longitude.value = tenant.longitude || '';
@@ -2054,35 +2294,6 @@
       }
     }
 
-    // Toast notification function
-    function showToast(message, type = 'info') {
-      // Create toast element
-      const toast = document.createElement('div');
-      toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
-        type === 'success' ? 'bg-green-500 text-white' :
-        type === 'error' ? 'bg-red-500 text-white' :
-        'bg-blue-500 text-white'
-      }`;
-
-      toast.innerHTML = `
-        <div class="flex items-center">
-          <i class="fas ${
-            type === 'success' ? 'fa-check-circle' :
-            type === 'error' ? 'fa-exclamation-circle' :
-            'fa-info-circle'
-          } mr-2"></i>
-          <span>${message}</span>
-        </div>
-      `;
-
-      document.body.appendChild(toast);
-
-      // Auto remove after 3 seconds
-      setTimeout(() => {
-        toast.remove();
-      }, 3000);
-    }
-
     // Settings Navigation
     function showSettingsTab(tabName) {
       // Hide all setting contents
@@ -2176,22 +2387,15 @@
       }
     }
 
-    async function autoDetectLocationModal() {
-      console.log('🔍 Detect location button clicked');
-      console.log('Event target:', event?.target);
-
+    window.autoDetectLocationModal = async function() {
       if (!navigator.geolocation) {
-        console.error('❌ Geolocation not supported');
         alert('Browser tidak mendukung geolokasi');
         return;
       }
 
       const button = event.target.closest('button');
-      console.log('Button found:', !!button);
-
       const originalText = button.innerHTML;
       const statusDiv = document.getElementById('locationStatus');
-      console.log('Status div found:', !!statusDiv);
 
       button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Detecting...';
       button.disabled = true;
@@ -2210,27 +2414,13 @@
         const longitude = position.coords.longitude.toFixed(6);
         const accuracy = Math.round(position.coords.accuracy);
 
-        console.log('📍 GPS coordinates obtained:', { latitude, longitude, accuracy });
-
         // Fill the form inputs
-        const latInput = document.getElementById('latitudeInput');
-        const lngInput = document.getElementById('longitudeInput');
-        const coordPreview = document.getElementById('coordinatePreview');
-
-        console.log('Form inputs found:', !!latInput, !!lngInput, !!coordPreview);
-
-        if (latInput) latInput.value = latitude;
-        if (lngInput) lngInput.value = longitude;
+        document.getElementById('latitudeInput').value = latitude;
+        document.getElementById('longitudeInput').value = longitude;
 
         // Update status and preview
         statusDiv.innerHTML = `<i class="fas fa-check-circle mr-1 text-green-600"></i>Lokasi berhasil dideteksi (akurasi: ${accuracy}m)`;
-        if (coordPreview) coordPreview.innerHTML = `📍 ${latitude}, ${longitude}`;
-
-        console.log('Form updated successfully');
-
-        // Update mini map with GPS coordinates
-        updateMiniMap(latitude, longitude);
-        console.log('Map updated with GPS coordinates');
+        document.getElementById('coordinatePreview').innerHTML = `📍 ${latitude}, ${longitude}`;
 
         // Add success animation
         statusDiv.classList.add('text-green-600');
@@ -2243,11 +2433,11 @@
         let errorMessage = 'Gagal mendapatkan lokasi';
 
         if (error.code === 1) {
-          errorMessage = 'Akses lokasi ditolak. Izinkan akses lokasi di browser.';
+          errorMessage = 'Akses lokasi ditolak. Silakan izinkan akses lokasi.';
         } else if (error.code === 2) {
-          errorMessage = 'Lokasi tidak dapat ditemukan. Pastikan GPS aktif.';
+          errorMessage = 'Lokasi tidak dapat dideteksi. Pastikan GPS aktif.';
         } else if (error.code === 3) {
-          errorMessage = 'Timeout mendeteksi lokasi. Coba lagi.';
+          errorMessage = 'Waktu habis mendapatkan lokasi. Coba lagi.';
         }
 
         statusDiv.innerHTML = `<i class="fas fa-exclamation-triangle mr-1 text-red-600"></i>${errorMessage}`;
@@ -2255,21 +2445,6 @@
         setTimeout(() => {
           statusDiv.classList.remove('text-red-600');
         }, 3000);
-
-        // Fallback: Update map with default coordinates
-        console.log('⚠️ GPS failed, using default coordinates');
-        const defaultLat = -2.2166;
-        const defaultLng = 113.9209;
-        updateMiniMap(defaultLat, defaultLng);
-
-        // Optional: Fill form with default coordinates
-        const latInput = document.getElementById('latitudeInput');
-        const lngInput = document.getElementById('longitudeInput');
-        const coordPreview = document.getElementById('coordinatePreview');
-
-        if (latInput) latInput.value = defaultLat.toFixed(6);
-        if (lngInput) lngInput.value = defaultLng.toFixed(6);
-        if (coordPreview) coordPreview.innerHTML = `📍 ${defaultLat.toFixed(6)}, ${defaultLng.toFixed(6)} (Default)`;
       } finally {
         button.innerHTML = originalText;
         button.disabled = false;
@@ -2343,7 +2518,14 @@
     document.getElementById('ruleForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(e.target);
+
+      // Handle hari checkboxes
+      const hariCheckboxes = e.target.querySelectorAll('input[name="hari"]:checked');
+      const hariValues = Array.from(hariCheckboxes).map(cb => cb.value);
+      const hari = hariValues.length > 0 ? hariValues.join(',') : '';
+
       const data = Object.fromEntries(formData);
+      data.hari = hari;
 
       const submitBtn = e.target.querySelector('button[type="submit"]');
       const originalText = submitBtn.textContent;
@@ -2423,7 +2605,7 @@
         day: 'numeric'
       }));
 
-      setEl('adminName', currentUser?.username || 'Admin');
+      setEl('adminName', window.currentUser?.username || 'Admin');
 
       // Attach tab click handlers
       document.querySelectorAll('.nav-item').forEach(btn => {
@@ -2446,36 +2628,7 @@
       document.getElementById('longitudeInput')?.addEventListener('input', updateCoordinatePreview);
 
       // Add modal auto-detect button listener
-      document.getElementById('detectLocationBtn')?.addEventListener('click', autoDetectLocationModal);
-
-      // Add device modal button
-      document.getElementById('add-device-modal-btn')?.addEventListener('click', () => {
-        const modal = document.getElementById('addDeviceModal');
-        modal.classList.remove('hidden');
-        modal.classList.add('show');
-
-        // Load tenant options for device modal
-        fetch('/api/admin/tenants', {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            const select = document.getElementById('deviceTenantId');
-            select.innerHTML = '<option value="">Pilih Sekolah</option>';
-            data.data.forEach(tenant => {
-              const option = document.createElement('option');
-              option.value = tenant.tenant_id;
-              option.textContent = tenant.nama_sekolah;
-              select.appendChild(option);
-            });
-          }
-        })
-        .catch(error => console.error('Error loading tenants for device modal:', error));
-      });
-
-      // Refresh devices button
-      document.getElementById('refresh-devices')?.addEventListener('click', loadScannerDevices);
+      document.getElementById('autoDetectModalBtn')?.addEventListener('click', autoDetectLocationModal);
 
       fetchDashboardData();
 
@@ -2484,9 +2637,9 @@
     });
 
     // WhatsApp Functions
-    function setupWhatsApp() {
+    window.setupWhatsApp = function() {
       loadTenantsForWhatsApp();
-      loadTeachersForWhatsApp();
+      setupTeacherSearch();
       setupMessageTemplates();
 
       // Bulk WhatsApp form
@@ -2544,13 +2697,17 @@
       document.getElementById('singleWhatsAppForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
+        if (isSubmittingSingle) return; // Prevent duplicate submissions
+
         const teacherId = document.getElementById('singleTeacherSelect').value;
         const message = document.getElementById('singleMessage').value.trim();
 
         if (!teacherId || !message) {
-          alert('Pilih guru dan isi pesan!');
+          alert('Pilih guru dengan nomor WhatsApp yang valid dan isi pesan!');
           return;
         }
+
+        isSubmittingSingle = true;
 
         if (!confirm('Kirim pesan ke guru yang dipilih?')) {
           return;
@@ -2581,6 +2738,7 @@
           }
 
           btn.innerHTML = originalText;
+          isSubmittingSingle = false;
           btn.disabled = false;
 
         } catch (error) {
@@ -2588,6 +2746,7 @@
           updateWhatsAppStatus('❌ Terjadi kesalahan saat mengirim pesan', 'error');
           e.target.querySelector('button[type="submit"]').innerHTML = '<i class="fab fa-whatsapp mr-2"></i>Kirim Pesan';
           e.target.querySelector('button[type="submit"]').disabled = false;
+          isSubmittingSingle = false;
         }
       });
 
@@ -2603,6 +2762,7 @@
       // Bulk message templates
       const bulkTemplateSelect = document.getElementById('bulkMessageTemplate');
       const bulkMessageTextarea = document.getElementById('bulkMessage');
+
       const bulkTemplates = {
         'reminder_absen': 'Mohon segera melakukan absensi untuk hari ini. Mari kita mulai hari dengan catatan kehadiran yang baik.',
         'libur': 'Diberitahukan bahwa besok adalah hari libur. Semoga hari libur ini dapat dimanfaatkan untuk beristirahat dan beribadah.',
@@ -2660,72 +2820,86 @@
       }
     }
 
-    async function loadTeachersForWhatsApp() {
-      try {
-        const response = await fetch('/api/admin/teachers', {
-          headers: { 'Authorization': `Bearer ${authToken}` }
+    function setupTeacherSearch() {
+      const input = document.getElementById('singleTeacherInput');
+      const hiddenInput = document.getElementById('singleTeacherSelect');
+      const suggestions = document.getElementById('teacherSuggestions');
+      let searchTimeout;
+
+      input.addEventListener('input', function() {
+        const query = this.value.trim();
+        clearTimeout(searchTimeout);
+
+        if (query.length < 2) {
+          suggestions.classList.add('hidden');
+          hiddenInput.value = '';
+          return;
+        }
+
+        searchTimeout = setTimeout(() => searchTeachers(query), 300);
+      });
+
+      input.addEventListener('focus', function() {
+        if (this.value.trim().length >= 2) {
+          searchTeachers(this.value.trim());
+        }
+      });
+
+      input.addEventListener('blur', function() {
+        // Delay hiding to allow click on suggestions
+        setTimeout(() => suggestions.classList.add('hidden'), 150);
+      });
+
+      async function searchTeachers(query) {
+        try {
+          const response = await fetch(`/api/admin/teachers?search=${encodeURIComponent(query)}&limit=20`, {
+            headers: { 'Authorization': `Bearer ${window.authToken}` }
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            displaySuggestions(result.data);
+          }
+        } catch (error) {
+          console.error('Error searching teachers:', error);
+        }
+      }
+
+      function displaySuggestions(teachers) {
+        suggestions.innerHTML = '';
+
+        if (teachers.length === 0) {
+          suggestions.classList.add('hidden');
+          return;
+        }
+
+        teachers.forEach(teacher => {
+          const assignment = teacher.assignments && teacher.assignments.length > 0 ? teacher.assignments[0] : null;
+          const jabatan = assignment ? assignment.jabatan_di_unit || 'Guru' : 'Guru';
+          const schoolName = assignment ? assignment.nama_sekolah || 'Unknown' : 'Unknown';
+
+          const div = document.createElement('div');
+          div.className = 'px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0';
+          div.innerHTML = `
+            <div class="font-medium text-gray-900">${teacher.nama}</div>
+            <div class="text-sm text-gray-600">${jabatan} - ${schoolName}</div>
+            <div class="text-xs text-gray-500">${teacher.no_wa ? teacher.no_wa : 'No WhatsApp'}</div>
+          `;
+
+          div.addEventListener('click', function() {
+            if (teacher.no_wa) {
+              input.value = `${teacher.nama} (${teacher.no_wa}) - ${jabatan}`;
+              hiddenInput.value = teacher.id;
+              suggestions.classList.add('hidden');
+            } else {
+              alert('Guru ini tidak memiliki nomor WhatsApp');
+            }
+          });
+
+          suggestions.appendChild(div);
         });
 
-        if (response.ok) {
-          const result = await response.json();
-          const datalist = document.getElementById('teacherList');
-          datalist.innerHTML = '';
-
-          // Store teacher data for lookup
-          window.teacherData = {};
-
-          result.data.forEach(teacher => {
-            if (teacher.no_wa) { // Only show teachers with WhatsApp numbers
-              const option = document.createElement('option');
-
-              // Get assignment info (jabatan and school name)
-              const assignment = teacher.assignments && teacher.assignments.length > 0 ? teacher.assignments[0] : null;
-              const jabatan = assignment ? assignment.jabatan_di_unit || 'Guru' : 'Guru';
-              const schoolName = assignment ? assignment.nama_sekolah || 'Unknown' : 'Unknown';
-
-              // Display format: "Nama Guru (No WA) - Jabatan"
-              const displayText = `${teacher.nama} (${teacher.no_wa}) - ${jabatan}`;
-              option.value = displayText;
-
-              // Store teacher data for later lookup
-              window.teacherData[displayText] = {
-                id: teacher.id,
-                nama: teacher.nama,
-                no_wa: teacher.no_wa,
-                jabatan: jabatan,
-                schoolName: schoolName
-              };
-
-              datalist.appendChild(option);
-            }
-          });
-
-          // Add input event listener for selection
-          const input = document.getElementById('singleTeacherInput');
-          const hiddenInput = document.getElementById('singleTeacherSelect');
-
-          input.addEventListener('input', function() {
-            const selectedText = this.value;
-            const teacher = window.teacherData[selectedText];
-            if (teacher) {
-              hiddenInput.value = teacher.id;
-            } else {
-              hiddenInput.value = '';
-            }
-          });
-
-          input.addEventListener('change', function() {
-            const selectedText = this.value;
-            const teacher = window.teacherData[selectedText];
-            if (!teacher && this.value !== '') {
-              // Invalid selection, clear it
-              this.value = '';
-              hiddenInput.value = '';
-            }
-          });
-        }
-      } catch (error) {
-        console.error('Error loading teachers for WhatsApp:', error);
+        suggestions.classList.remove('hidden');
       }
     }
 
@@ -2738,76 +2912,19 @@
       };
 
       statusDiv.className = `border rounded-lg p-4 ${colors[type] || colors.info}`;
-      statusDiv.innerHTML = `<p class="text-sm">${message}</p>`;
+      statusDiv.innerHTML = `<p class="text-gray-600 text-sm">${message}</p>`;
 
       // Add timestamp
       const timestamp = new Date().toLocaleTimeString('id-ID');
       statusDiv.innerHTML += `<p class="text-xs mt-1 opacity-75">${timestamp}</p>`;
     }
+  </script>
 
-    // ===== MAP FUNCTIONALITY =====
-
+  <script>
     // Map functionality
     let locationMap = null;
     let locationMarker = null;
-
-    // Location Detection and Map Variables
-    let miniMap = null;
-    let currentMarker = null;
     let currentLatLng = null;
-
-    // Update mini map with new coordinates
-    function updateMiniMap(lat, lng) {
-      console.log('🗺️ Updating mini map with coordinates:', lat, lng);
-
-      const mapContainer = document.getElementById('locationMiniMap');
-      if (!mapContainer) {
-        console.error('Map container not found');
-        return;
-      }
-
-      // Clear existing map
-      if (miniMap) {
-        miniMap.remove();
-        miniMap = null;
-      }
-
-      // Clear existing marker
-      if (currentMarker) {
-        currentMarker = null;
-      }
-
-      // Create new map
-      try {
-        miniMap = L.map(mapContainer, {
-          center: [lat, lng],
-          zoom: 16,
-          zoomControl: false,
-          attributionControl: false
-        });
-
-        // Add OpenStreetMap tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-        }).addTo(miniMap);
-
-        // Add marker
-        currentMarker = L.marker([lat, lng]).addTo(miniMap);
-
-        // Fit bounds
-        miniMap.fitBounds([[lat, lng], [lat, lng]], { maxZoom: 16 });
-
-        console.log('✅ Mini map updated successfully');
-      } catch (error) {
-        console.error('❌ Error creating mini map:', error);
-        mapContainer.innerHTML = `
-          <div class="flex flex-col items-center justify-center h-full text-red-500">
-            <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-            <p class="text-sm">Gagal memuat peta</p>
-          </div>
-        `;
-      }
-    }
 
     function toggleMap() {
       const mapContainer = document.getElementById('mapContainer');
@@ -2970,6 +3087,42 @@
       }
     }
 
+    // Enhanced coordinate preview update
+    function updateCoordinatePreview() {
+      const latInput = document.getElementById('latitudeInput');
+      const lngInput = document.getElementById('longitudeInput');
+      const preview = document.getElementById('coordinatePreview');
+      const accuracy = document.getElementById('coordinateAccuracy');
+
+      const lat = latInput.value;
+      const lng = lngInput.value;
+
+      if (lat && lng) {
+        const latNum = parseFloat(lat);
+        const lngNum = parseFloat(lng);
+
+        // Format coordinates nicely
+        const latFormatted = latNum.toFixed(6);
+        const lngFormatted = lngNum.toFixed(6);
+
+        preview.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="font-semibold text-gray-900">${latFormatted}, ${lngFormatted}</span>
+            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">GPS Ready</span>
+          </div>
+        `;
+        preview.classList.remove('text-gray-500');
+        preview.classList.add('text-blue-700');
+
+        // Show accuracy indicator
+        accuracy.classList.remove('hidden');
+      } else {
+        preview.innerHTML = '<span class="text-gray-500">Belum ada koordinat dipilih</span>';
+        preview.classList.remove('text-blue-700');
+        preview.classList.add('text-gray-500');
+        accuracy.classList.add('hidden');
+      }
+    }
 
     // Enhanced copy coordinates with better feedback
     function copyCoordinates() {
@@ -3007,10 +3160,431 @@
       }
     }
 
-    // Override the existing updateCoordinatePreview to work with our new system
-    window.updateCoordinatePreview = updateCoordinatePreview;
 
-    // ===== MISSING MODAL FUNCTIONS =====
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const now = new Date();
+      setEl('currentDate', now.toLocaleDateString('id-ID', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }));
+
+      setEl('adminName', window.currentUser?.username || 'Admin');
+
+      // Attach tab click handlers
+      document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const tab = this.getAttribute('data-tab');
+          showTab(tab);
+        });
+      });
+
+      // Add settings navigation event listeners
+      document.querySelectorAll('.settings-nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+          const setting = this.getAttribute('data-setting');
+          showSettingsTab(setting);
+        });
+      });
+
+      // Add coordinate preview listeners
+      document.getElementById('latitudeInput')?.addEventListener('input', updateCoordinatePreview);
+      document.getElementById('longitudeInput')?.addEventListener('input', updateCoordinatePreview);
+
+      // Add modal auto-detect button listener
+      document.getElementById('autoDetectModalBtn')?.addEventListener('click', autoDetectLocationModal);
+
+      fetchDashboardData();
+
+      // WhatsApp functionality
+      setupWhatsApp();
+    });
+
+     // Override the existing updateCoordinatePreview to work with our new system
+     window.updateCoordinatePreview = updateCoordinatePreview;
+
+     // ==================== QR GENERATOR FUNCTIONALITY ====================
+     let qrCodeObj = null;
+     let currentQRData = null;
+     let teacherListCache = [];
+
+     // Search teachers for QR generation
+     const teacherSearchInput = document.getElementById('qr-teacher-search');
+     const suggestionsBox = document.getElementById('qr-teacher-suggestions');
+     const generateBtn = document.getElementById('generate-qr-btn');
+
+     // Fetch all teachers for dropdown cache
+     async function loadTeacherList() {
+       try {
+         const response = await fetch('/api/search/teachers?limit=200');
+         if (response.ok) {
+           const result = await response.json();
+           if (result.success) {
+             teacherListCache = result.data;
+           }
+         }
+       } catch (error) {
+         console.error('Failed to load teachers:', error);
+       }
+     }
+
+     // Teacher search with debounce
+     let searchTimeout;
+     teacherSearchInput?.addEventListener('input', (e) => {
+       clearTimeout(searchTimeout);
+       searchTimeout = setTimeout(() => {
+         const query = e.target.value.toLowerCase().trim();
+         if (query.length < 2) {
+           suggestionsBox.classList.add('hidden');
+           return;
+         }
+         const matches = teacherListCache.filter(t => 
+           t.nama.toLowerCase().includes(query) || 
+           t.nik.includes(query) ||
+           (t.scan_id && t.scan_id.toLowerCase().includes(query))
+         ).slice(0, 8);
+         
+         if (matches.length > 0) {
+           suggestionsBox.innerHTML = matches.map(t => `
+             <div class="px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0" 
+                  data-id="${t.id}" 
+                  data-scan-id="${t.scan_id || t.nik}"
+                  data-name="${t.nama}"
+                  data-school="${t.assignments && t.assignments[0] ? t.assignments[0].nama_sekolah : ''}">
+               <div class="font-medium text-gray-900">${t.nama}</div>
+               <div class="text-xs text-gray-500">NIK: ${t.nik} | Scan ID: ${t.scan_id || t.nik}</div>
+               <div class="text-xs text-gray-500">${t.assignments && t.assignments[0] ? t.assignments[0].nama_sekolah : 'Belum ditugaskan'}</div>
+             </div>
+           `).join('');
+           suggestionsBox.classList.remove('hidden');
+         } else {
+           suggestionsBox.classList.add('hidden');
+         }
+       }, 300);
+     });
+
+     // Select teacher from suggestions
+     suggestionsBox?.addEventListener('click', (e) => {
+       const item = e.target.closest('[data-id]');
+       if (item) {
+         const teacherId = item.dataset.id;
+         const scanId = item.dataset.scanId;
+         const name = item.dataset.name;
+         const school = item.dataset.school;
+         
+         document.getElementById('qr-teacher-id').value = teacherId;
+         document.getElementById('qr-scan-id').value = scanId;
+         document.getElementById('qr-teacher-name').value = name;
+         document.getElementById('qr-school').value = school;
+         
+         suggestionsBox.classList.add('hidden');
+         teacherSearchInput.value = name;
+         
+         // Enable generate button
+         generateBtn.disabled = false;
+       }
+     });
+
+     // Generate QR button
+     generateBtn?.addEventListener('click', async () => {
+       const scanId = document.getElementById('qr-scan-id').value;
+       const teacherName = document.getElementById('qr-teacher-name').value;
+       const expiryHours = parseInt(document.getElementById('qr-expiry').value);
+
+       if (!scanId) {
+         alert('Pilih guru terlebih dahulu');
+         return;
+       }
+
+       try {
+         const response = await fetch(`/api/scanner/qr/generate?scan_id=${encodeURIComponent(scanId)}&expiry=${expiryHours}`);
+         const result = await response.json();
+
+         if (result.success) {
+           currentQRData = result.data;
+           displayQR(result.data);
+         } else {
+           alert('Gagal generate QR: ' + result.message);
+         }
+       } catch (error) {
+         console.error('QR generate error:', error);
+         alert('Network error generating QR');
+       }
+     });
+
+       function displayQR(qrData) {
+         const preview = document.getElementById('qr-preview');
+         const container = document.getElementById('qr-image-container');
+         const expirySpan = document.getElementById('qr-expiry-time');
+         
+         container.innerHTML = '';
+         const qrDiv = document.createElement('div');
+         qrDiv.id = 'qrcode';
+         container.appendChild(qrDiv);
+
+         // Encode QR data exactly as received from server (includes scan_id, tenant_id, expiry, signature, type)
+         // Do NOT override timestamp - scanner will use current time when scanning
+         const qrText = JSON.stringify({
+           scan_id: qrData.scan_id,
+           tenant_id: qrData.tenant_id,
+           type: qrData.type || 'attendance',
+           expiry: qrData.expiry,
+           signature: qrData.signature
+         });
+
+         qrCodeObj = new QRCode(qrDiv, {
+           text: qrText,
+           width: 200,
+           height: 200,
+           colorDark: '#000000',
+           colorLight: '#ffffff',
+           correctLevel: QRCode.CorrectLevel.H
+         });
+
+         // Set expiry display
+         const expiryDate = new Date(qrData.expiry);
+         expirySpan.textContent = expiryDate.toLocaleString('id-ID');
+
+         preview.classList.remove('hidden');
+       }
+
+     // Download QR as image
+     document.getElementById('download-qr')?.addEventListener('click', () => {
+       const qrImg = document.querySelector('#qrcode img');
+       if (qrImg && qrImg.src) {
+         const link = document.createElement('a');
+         link.href = qrImg.src;
+         link.download = `QR-${currentQRData.scan_id}-${Date.now()}.png`;
+         link.click();
+       }
+     });
+
+     // Print QR
+     document.getElementById('print-qr')?.addEventListener('click', () => {
+       const qrImg = document.querySelector('#qrcode img');
+       if (qrImg && qrImg.src) {
+         const printWindow = window.open('', '_blank');
+         printWindow.document.write(`
+           <html><head><title>Print QR - ${currentQRData.scan_id}</title></head>
+           <body style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;">
+             <img src="${qrImg.src}" style="width:300px;height:300px;">
+             <p style="margin-top:20px;font-family:sans-serif;">
+               <strong>${currentQRData.nama}</strong><br>
+               Scan ID: ${currentQRData.scan_id}<br>
+               ${currentQRData.nama_sekolah}<br>
+               Berlaku sampai: ${new Date(currentQRData.expiry).toLocaleString('id-ID')}
+             </p>
+           </body></html>
+         `);
+         printWindow.document.close();
+         printWindow.print();
+       }
+     });
+
+      // Load Scanner Devices list
+      async function loadScannerDevices() {
+        const container = document.getElementById('devices-list');
+        try {
+          const response = await fetch('/api/scanner/devices', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+         if (response.ok) {
+           const result = await response.json();
+           if (result.success) {
+             if (result.data.length === 0) {
+               container.innerHTML = '<div class="text-center py-6 text-gray-500">Belum ada scanner device terdaftar</div>';
+               return;
+             }
+             container.innerHTML = result.data.map(dev => `
+               <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition" data-device-id="${dev.device_id}">
+                 <div class="flex justify-between items-start">
+                   <div>
+                     <h5 class="font-semibold text-gray-900">${dev.school_name}</h5>
+                     <p class="text-sm text-gray-600">${dev.device_name || dev.device_id}</p>
+                     <p class="text-xs text-gray-500 mt-1">Device ID: ${dev.device_id}</p>
+                   </div>
+                   <span class="px-2 py-1 text-xs font-semibold rounded-full ${
+                     dev.status === 'active' ? 'bg-green-100 text-green-800' :
+                     dev.status === 'maintenance' ? 'bg-yellow-100 text-yellow-800' :
+                     'bg-red-100 text-red-800'
+                   }">${dev.status}</span>
+                 </div>
+                  <div class="mt-3 flex items-center justify-between text-sm">
+                    <span class="text-gray-500">
+                      <i class="fas fa-chart-bar mr-1"></i> ${dev.total_scans || 0} total scan
+                    </span>
+                    <span class="text-gray-500">
+                      <i class="fas fa-clock mr-1"></i> ${dev.last_sync ? new Date(dev.last_sync).toLocaleTimeString('id-ID') : 'Belum'}
+                    </span>
+                  </div>
+                  <div class="mt-3 flex justify-end space-x-2">
+                    <button onclick="editDevice('${dev.device_id}')" class="text-blue-600 hover:text-blue-800 text-sm" title="Edit Device">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="changeDeviceStatus('${dev.device_id}', '${dev.status}')" class="text-orange-600 hover:text-orange-800 text-sm" title="Change Status">
+                      <i class="fas fa-toggle-on"></i>
+                    </button>
+                    <button onclick="deleteDevice('${dev.device_id}')" class="text-red-600 hover:text-red-800 text-sm" title="Delete Device">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+               </div>
+             `).join('');
+           }
+         }
+       } catch (error) {
+         console.error('Failed to load devices:', error);
+         container.innerHTML = '<div class="text-center py-6 text-red-500">Gagal memuat data device</div>';
+       }
+     }
+
+      // Load QR logs (recent)
+      // Tenant Locations Management
+    async function loadTenantLocations() {
+      const container = document.getElementById('tenantLocationsList');
+      try {
+        const response = await fetch('/api/admin/tenant-locations', {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            if (result.data.length === 0) {
+              container.innerHTML = `
+                <div class="text-center py-12">
+                  <i class="fas fa-map-marked-alt text-4xl text-gray-400 mb-4"></i>
+                  <p class="text-gray-600">Belum ada lokasi terdaftar</p>
+                  <button onclick="showAddLocationModal()" class="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    <i class="fas fa-plus mr-2"></i>
+                    Tambah Lokasi Pertama
+                  </button>
+                </div>
+              `;
+              return;
+            }
+
+            container.innerHTML = result.data.map(location => `
+              <div class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition">
+                <div class="flex justify-between items-start mb-3">
+                  <div class="flex-1">
+                    <h5 class="font-semibold text-gray-900">${location.location_name}</h5>
+                    <p class="text-sm text-gray-600">${location.nama_sekolah} (${location.tenant_id})</p>
+                    <div class="flex items-center mt-2 space-x-4 text-xs text-gray-500">
+                      ${location.latitude && location.longitude ?
+                        `<span><i class="fas fa-map-marker-alt mr-1"></i>${parseFloat(location.latitude).toFixed(6)}, ${parseFloat(location.longitude).toFixed(6)}</span>` :
+                        '<span class="text-red-500"><i class="fas fa-exclamation-triangle mr-1"></i>Koordinat belum diatur</span>'
+                      }
+                      <span><i class="fas fa-circle mr-1"></i>Radius: ${location.location_radius}m</span>
+                      <span class="${location.is_active ? 'text-green-600' : 'text-red-600'}">
+                        <i class="fas fa-${location.is_active ? 'check' : 'times'} mr-1"></i>
+                        ${location.is_active ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="flex space-x-2">
+                    <button onclick="editTenantLocation(${location.id})" class="text-blue-600 hover:text-blue-800" title="Edit Lokasi">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="toggleLocationStatus(${location.id}, ${location.is_active})" class="text-orange-600 hover:text-orange-800" title="Toggle Status">
+                      <i class="fas fa-toggle-${location.is_active ? 'on' : 'off'}"></i>
+                    </button>
+                    <button onclick="deleteTenantLocation(${location.id})" class="text-red-600 hover:text-red-800" title="Hapus Lokasi">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `).join('');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load tenant locations:', error);
+        container.innerHTML = '<div class="text-center py-6 text-red-500">Gagal memuat data lokasi</div>';
+      }
+    }
+
+    async function showAddLocationModal() {
+      console.log('Opening add location modal...');
+
+      // Hide all other modals first
+      document.querySelectorAll('.modal').forEach(modal => {
+        modal.classList.add('hidden');
+        modal.classList.remove('show');
+      });
+
+      // Reset form
+      document.getElementById('locationId').value = '';
+      document.getElementById('tenantLocationModalTitle').textContent = 'Tambah Lokasi Tenant';
+      document.getElementById('tenantLocationForm').reset();
+
+      // Reset location detection status
+      document.getElementById('locationStatus').innerHTML = '<i class="fas fa-info-circle mr-1"></i>Klik tombol di atas untuk mendapatkan koordinat GPS saat ini';
+      document.getElementById('locationStatus').className = 'text-sm text-blue-700';
+      document.getElementById('detectedAddress').classList.add('hidden');
+
+      // Reset mini map
+      const mapContainer = document.getElementById('locationMiniMap');
+      mapContainer.innerHTML = `
+        <div class="text-center text-gray-500 h-full flex items-center justify-center">
+          <div>
+            <i class="fas fa-map-marked-alt text-3xl mb-2"></i>
+            <p>Peta akan muncul setelah koordinat dimasukkan</p>
+          </div>
+        </div>
+      `;
+      if (miniMap) {
+        miniMap.remove();
+        miniMap = null;
+      }
+
+      // Show modal first, then load data
+      const modal = document.getElementById('tenantLocationModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('show');
+      console.log('Modal should be visible now');
+
+      // Small delay to ensure modal is fully rendered
+      setTimeout(function() {
+        loadTenantOptionsForModal();
+      }, 100);
+
+      async function loadTenantOptionsForModal() {
+        try {
+          console.log('Loading tenant options...');
+          const response = await fetch('/api/admin/tenants', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          console.log('Tenant API response:', response.status);
+
+          if (response.ok) {
+            const result = await response.json();
+            console.log('Tenant data:', result);
+
+            if (result.success) {
+              const select = document.getElementById('locationTenantId');
+              if (select) {
+                select.innerHTML = '<option value="">Pilih Sekolah</option>';
+                result.data.forEach(function(tenant) {
+                  const option = document.createElement('option');
+                  option.value = tenant.tenant_id;
+                  option.textContent = tenant.nama_sekolah;
+                  select.appendChild(option);
+                });
+                console.log('Tenant options loaded:', result.data.length);
+              } else {
+                console.error('locationTenantId select element not found!');
+              }
+            }
+          } else {
+            console.error('Failed to load tenants:', response.status);
+          }
+        } catch (error) {
+          console.error('Error loading tenants:', error);
+        }
+      }
 
     function hideTenantLocationModal() {
       console.log('Hiding tenant location modal...');
@@ -3029,372 +3603,269 @@
       console.log('Modal hidden');
     }
 
-    function showAddLocationModal() {
-      // This function shows the modal for adding new tenant locations
-      console.log('Opening add location modal...');
+      // Location Detection and Map Variables
+      let miniMap = null;
+      let currentMarker = null;
 
-      // Hide all other modals first
-      document.querySelectorAll('.modal').forEach(modal => {
-        modal.classList.add('hidden');
-        modal.classList.remove('show');
+      // Detect current location using geolocation
+      document.getElementById('detectLocationBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('detectLocationBtn');
+        const status = document.getElementById('locationStatus');
+        const originalText = btn.innerHTML;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Mendeteksi...';
+        status.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Mendeteksi lokasi Anda...';
+
+        try {
+          if (!navigator.geolocation) {
+            throw new Error('Geolocation tidak didukung oleh browser ini');
+          }
+
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 10000,
+              maximumAge: 300000
+            });
+          });
+
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const accuracy = Math.round(position.coords.accuracy);
+
+          // Fill form fields
+          document.getElementById('locationLat').value = lat.toFixed(6);
+          document.getElementById('locationLng').value = lng.toFixed(6);
+
+          // Generate location name if empty
+          const nameInput = document.getElementById('locationName');
+          if (!nameInput.value.trim()) {
+            nameInput.value = `Lokasi ${new Date().toLocaleTimeString('id-ID')}`;
+          }
+
+          // Update status
+          status.innerHTML = `<i class="fas fa-check-circle mr-1 text-green-600"></i>Lokasi terdeteksi! Akurasi: ${accuracy}m`;
+          status.className = 'text-sm text-green-700';
+
+          // Reverse geocoding to get address
+          await reverseGeocode(lat, lng);
+
+          // Update mini map
+          updateMiniMap(lat, lng);
+
+          showToast('Lokasi berhasil dideteksi!', 'success');
+
+        } catch (error) {
+          console.error('Location detection error:', error);
+          let errorMessage = 'Gagal mendeteksi lokasi';
+
+          if (error.code === 1) {
+            errorMessage = 'Akses lokasi ditolak. Izinkan akses lokasi di browser.';
+          } else if (error.code === 2) {
+            errorMessage = 'Lokasi tidak dapat ditemukan. Pastikan GPS aktif.';
+          } else if (error.code === 3) {
+            errorMessage = 'Timeout mendeteksi lokasi. Coba lagi.';
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+
+          status.innerHTML = `<i class="fas fa-exclamation-triangle mr-1 text-red-600"></i>${errorMessage}`;
+          status.className = 'text-sm text-red-700';
+          showToast(errorMessage, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
       });
 
-      // Reset form for adding new location
-      document.getElementById('locationId').value = '';
-      document.getElementById('tenantLocationModalTitle').textContent = 'Tambah Lokasi Tenant';
-      document.getElementById('tenantLocationForm').reset();
+      // Reverse geocoding using Nominatim (OpenStreetMap)
+      async function reverseGeocode(lat, lng) {
+        try {
+          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`, {
+            headers: {
+              'User-Agent': 'YPWI-Admin-Dashboard/1.0'
+            }
+          });
 
-      // Reset location detection status
-      document.getElementById('locationStatus').innerHTML = '<i class="fas fa-info-circle mr-1"></i>Klik tombol di atas untuk mendapatkan koordinat GPS saat ini';
-      document.getElementById('locationStatus').className = 'text-sm text-blue-700';
-      document.getElementById('detectedAddress').classList.add('hidden');
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.display_name) {
+              const addressDiv = document.getElementById('detectedAddress');
+              const addressText = document.getElementById('addressText');
 
-      // Reset mini map with default location (Indonesia center)
-      const mapContainer = document.getElementById('locationMiniMap');
-      mapContainer.innerHTML = `
-        <div class="text-center text-gray-500 h-full flex items-center justify-center">
-          <div>
-            <i class="fas fa-map-marked-alt text-3xl mb-2"></i>
-            <p>Memuat peta...</p>
-          </div>
-        </div>
-      `;
+              addressText.textContent = data.display_name;
+              addressDiv.classList.remove('hidden');
 
-      // Clean up existing map
-      if (miniMap) {
-        miniMap.remove();
-        miniMap = null;
+              // Auto-fill location name with street/area name if empty
+              const nameInput = document.getElementById('locationName');
+              if (!nameInput.value.trim() && data.address) {
+                let autoName = '';
+                if (data.address.road) autoName = data.address.road;
+                else if (data.address.suburb) autoName = data.address.suburb;
+                else if (data.address.city) autoName = data.address.city;
+                else if (data.address.town) autoName = data.address.town;
+
+                if (autoName) {
+                  nameInput.value = autoName;
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Reverse geocoding error:', error);
+          // Don't show error, just continue without address
+        }
       }
 
-      // Initialize map with default Indonesian coordinates
-      setTimeout(() => {
-        const defaultLat = -2.2166; // Center of Indonesia
-        const defaultLng = 113.9209;
-        updateMiniMap(defaultLat, defaultLng);
-        console.log('🗺️ Map initialized with default coordinates');
-      }, 500);
+      // Update mini map with new coordinates
+      function updateMiniMap(lat, lng) {
+        const mapContainer = document.getElementById('locationMiniMap');
 
-      // Tenant options will be loaded after modal is shown
-      loadTenantOptionsForModal();
+        // Clear existing map
+        if (miniMap) {
+          miniMap.remove();
+        }
 
-      // Show modal
-      const modal = document.getElementById('tenantLocationModal');
-      modal.classList.remove('hidden');
-      modal.classList.add('show');
+        // Create new map
+        miniMap = L.map(mapContainer, {
+          center: [lat, lng],
+          zoom: 16,
+          zoomControl: false,
+          attributionControl: false
+        });
 
-      console.log('Modal should be visible now');
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+        }).addTo(miniMap);
 
-      // Small delay to ensure modal is fully rendered before loading data
-      setTimeout(() => {
-        loadTenantOptionsForModal();
-      }, 100);
-    }
+        // Add marker
+        if (currentMarker) {
+          miniMap.removeLayer(currentMarker);
+        }
+        currentMarker = L.marker([lat, lng]).addTo(miniMap);
 
-    function hideAddDeviceModal() {
-      const modal = document.getElementById('addDeviceModal');
-      modal.classList.remove('show');
-      modal.classList.add('hidden');
-      document.getElementById('addDeviceForm').reset();
-    }
+        // Fit bounds
+        miniMap.fitBounds([[lat, lng], [lat, lng]], { maxZoom: 16 });
+      }
 
-    // Load tenant options for location modal
-    function loadTenantOptionsForModal() {
-      console.log('Loading tenant options for location modal...');
-      console.log('Auth token available:', !!authToken);
+      // Update map when coordinates change
+      document.getElementById('locationLat').addEventListener('input', updateMapFromInputs);
+      document.getElementById('locationLng').addEventListener('input', updateMapFromInputs);
 
-      // Check if modal is visible
-      const modal = document.getElementById('tenantLocationModal');
-      console.log('Modal element found:', !!modal);
-      console.log('Modal classes:', modal ? modal.className : 'N/A');
-      console.log('Modal visible:', modal ? modal.classList.contains('show') : false);
+      function updateMapFromInputs() {
+        const lat = parseFloat(document.getElementById('locationLat').value);
+        const lng = parseFloat(document.getElementById('locationLng').value);
 
-      if (!authToken) {
-        console.error('No auth token available for tenant loading');
-        const select = document.getElementById('locationTenantId');
-        if (select) select.innerHTML = '<option value="">Token autentikasi tidak tersedia</option>';
+        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+          updateMiniMap(lat, lng);
+        }
+      }
+
+      // Tenant Location Form Handler
+      document.getElementById('tenantLocationForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const locationId = document.getElementById('locationId').value;
+      const tenantId = document.getElementById('locationTenantId').value;
+      const locationName = document.getElementById('locationName').value;
+      const latitude = document.getElementById('locationLat').value;
+      const longitude = document.getElementById('locationLng').value;
+      const radius = document.getElementById('locationRadius').value;
+
+      if (!tenantId || !locationName) {
+        showToast('Tenant ID dan Nama Lokasi wajib diisi', 'error');
         return;
       }
 
-      fetch('/api/admin/tenants', {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      })
-      .then(res => {
-        console.log('Tenant API response status:', res.status);
-        return res.json();
-      })
-      .then(data => {
-        try {
-          console.log('Tenant API response data:', data);
-          if (data.success && data.data) {
-            console.log('Processing tenant data...');
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Menyimpan...';
 
-            // Get select element fresh each time to avoid stale references
-            const selectElement = document.getElementById('locationTenantId');
-            console.log('Select element found:', !!selectElement);
-            console.log('Select element type:', selectElement ? selectElement.tagName : 'N/A');
+      try {
+        const method = locationId ? 'PUT' : 'POST';
+        const url = locationId ? `/api/admin/tenant-locations/${locationId}` : '/api/admin/tenant-locations';
 
-            if (!selectElement) {
-              console.error('Select element locationTenantId not found!');
-              console.error('Available elements with locationTenantId:', document.querySelectorAll('[id*="locationTenantId"]'));
-              return;
-            }
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            tenant_id: tenantId,
+            location_name: locationName,
+            latitude: latitude || null,
+            longitude: longitude || null,
+            location_radius: parseInt(radius) || 100
+          })
+        });
 
-            selectElement.innerHTML = '<option value="">Pilih Sekolah</option>';
+        const result = await response.json();
+        if (result.success) {
+          showToast(locationId ? 'Lokasi berhasil diupdate' : 'Lokasi berhasil ditambahkan', 'success');
+          hideTenantLocationModal();
+          loadTenantLocations();
+        } else {
+          showToast(result.message || 'Gagal menyimpan lokasi', 'error');
+        }
+      } catch (error) {
+        console.error('Error saving location:', error);
+        showToast('Error menyimpan lokasi', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+      }
+    });
 
-            if (Array.isArray(data.data)) {
-              console.log('Data array length:', data.data.length);
+    async function editTenantLocation(id) {
+      // Load location data and show edit modal
+      try {
+        const response = await fetch(`/api/admin/tenant-locations/${id}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
 
-              data.data.forEach(function(tenant, index) {
-                console.log(`Adding tenant ${index}:`, tenant.tenant_id, tenant.nama_sekolah);
-                const option = document.createElement('option');
-                option.value = tenant.tenant_id;
-                option.textContent = tenant.nama_sekolah;
-                selectElement.appendChild(option);
-              });
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            const location = result.data;
 
-              // Force DOM update and log final state
-              console.log('Tenant options loaded successfully');
-              console.log('Select element still exists:', !!selectElement);
-              console.log('Final select HTML:', selectElement ? selectElement.innerHTML : 'N/A');
-              console.log('Final select options count:', selectElement && selectElement.options ? selectElement.options.length : 'N/A');
+            // Populate modal with data
+            document.getElementById('locationId').value = location.id;
+            document.getElementById('locationTenantId').value = location.tenant_id;
+            document.getElementById('locationName').value = location.location_name;
+            document.getElementById('locationLat').value = location.latitude || '';
+            document.getElementById('locationLng').value = location.longitude || '';
+            document.getElementById('locationRadius').value = location.location_radius || 100;
+            document.getElementById('tenantLocationModalTitle').textContent = 'Edit Lokasi Tenant';
 
-              // Verify each option was added
-              if (selectElement && selectElement.options) {
-                for (let i = 0; i < selectElement.options.length; i++) {
-                  console.log(`Option ${i}: value="${selectElement.options[i].value}" text="${selectElement.options[i].textContent}"`);
-                }
+            // Load tenant options
+            const tenantResponse = await fetch('/api/admin/tenants', {
+              headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            if (tenantResponse.ok) {
+              const tenantResult = await tenantResponse.json();
+              if (tenantResult.success) {
+                const select = document.getElementById('locationTenantId');
+                select.innerHTML = '<option value="">Pilih Sekolah</option>';
+                tenantResult.data.forEach(tenant => {
+                  const option = document.createElement('option');
+                  option.value = tenant.tenant_id;
+                  option.textContent = tenant.nama_sekolah;
+                  select.appendChild(option);
+                });
+                select.value = location.tenant_id;
               }
-
-              // Trigger change event to ensure UI updates
-              selectElement.dispatchEvent(new Event('change', { bubbles: true }));
-
-              // Final verification
-              setTimeout(() => {
-                const finalSelect = document.getElementById('locationTenantId');
-                console.log('FINAL CHECK - Select element:', !!finalSelect);
-                console.log('FINAL CHECK - Options count:', finalSelect ? finalSelect.options.length : 'N/A');
-                console.log('FINAL CHECK - First few options:');
-                if (finalSelect && finalSelect.options.length > 0) {
-                  for (let i = 0; i < Math.min(3, finalSelect.options.length); i++) {
-                    console.log(`  ${i}: "${finalSelect.options[i].textContent}"`);
-                  }
-                }
-              }, 500);
-            } else {
-              console.error('data.data is not an array:', data.data);
-            }
-          } else {
-            console.error('API returned success=false or no data:', data);
-            console.error('Data.success:', data.success);
-            console.error('Data.data exists:', !!data.data);
-            console.error('Data.data type:', typeof data.data);
-          }
-        } catch (innerError) {
-          console.error('Error processing tenant data:', innerError);
-          console.error('Data that caused error:', data);
-        }
-      })
-      .catch(error => {
-        console.error('Error loading tenants for modal:', error);
-        // Show error in select
-        const select = document.getElementById('locationTenantId');
-        if (select) select.innerHTML = '<option value="">Error memuat data sekolah</option>';
-      });
-    }
-
-    // ===== MISSING DEVICE AND TEACHER FUNCTIONS =====
-
-    // Load Scanner Devices
-    async function loadScannerDevices() {
-      const container = document.getElementById('devices-list');
-      try {
-        const response = await fetch('/api/scanner/devices', {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) {
-            if (result.data.length === 0) {
-              container.innerHTML = '<div class="text-center py-6 text-gray-500">Belum ada scanner device terdaftar</div>';
-              return;
             }
 
-            container.innerHTML = result.data.map(dev => `
-              <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition" data-device-id="${dev.device_id}">
-                <div class="flex justify-between items-start">
-                  <div>
-                    <h5 class="font-semibold text-gray-900">${dev.school_name}</h5>
-                    <p class="text-sm text-gray-600">${dev.device_name || dev.device_id}</p>
-                    <p class="text-xs text-gray-500 mt-1">Device ID: ${dev.device_id}</p>
-                  </div>
-                  <span class="px-2 py-1 text-xs font-semibold rounded-full ${
-                    dev.status === 'active' ? 'bg-green-100 text-green-800' :
-                    dev.status === 'maintenance' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }">${dev.status}</span>
-                </div>
-                <div class="mt-3 flex items-center justify-between text-sm">
-                  <span class="text-gray-500">
-                    <i class="fas fa-chart-bar mr-1"></i> ${dev.total_scans || 0} total scan
-                  </span>
-                  <span class="text-gray-500">
-                    <i class="fas fa-clock mr-1"></i> ${dev.last_sync ? new Date(dev.last_sync).toLocaleTimeString('id-ID') : 'Belum'}
-                  </span>
-                </div>
-                <div class="mt-3 flex justify-end space-x-2">
-                  <button onclick="editDevice('${dev.device_id}')" class="text-blue-600 hover:text-blue-800 text-sm" title="Edit Device">
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button onclick="changeDeviceStatus('${dev.device_id}', '${dev.status}')" class="text-orange-600 hover:text-orange-800 text-sm" title="Change Status">
-                    <i class="fas fa-toggle-${dev.status === 'active' ? 'on' : 'off'}"></i>
-                  </button>
-                  <button onclick="deleteDevice('${dev.device_id}')" class="text-red-600 hover:text-red-800 text-sm" title="Delete Device">
-                    <i class="fas fa-trash"></i>
-                  </button>
-                </div>
-              </div>
-            `).join('');
+            document.getElementById('tenantLocationModal').classList.remove('hidden');
           }
         }
       } catch (error) {
-        console.error('Failed to load devices:', error);
-        container.innerHTML = '<div class="text-center py-6 text-red-500">Gagal memuat data device</div>';
-      }
-    }
-
-    function selectTeacher(id, name, nik) {
-      document.getElementById('qr-teacher-id').value = id;
-      document.getElementById('qr-teacher-search').value = name;
-      document.getElementById('qr-teacher-name').value = name;
-      document.getElementById('qr-scan-id').value = nik || id;
-      const suggestionsBox = document.getElementById('qr-teacher-suggestions');
-      if (suggestionsBox) suggestionsBox.classList.add('hidden');
-    }
-
-    async function editDevice(deviceId) {
-      const newName = prompt('Masukkan nama device baru:', deviceId);
-      if (!newName || newName.trim() === '') return;
-
-      try {
-        const response = await fetch(`/api/scanner/devices/${deviceId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
-          },
-          body: JSON.stringify({
-            device_name: newName.trim()
-          })
-        });
-
-        const result = await response.json();
-        if (result.success) {
-          loadScannerDevices();
-          showToast('Device berhasil diupdate', 'success');
-        } else {
-          showToast('Gagal update device', 'error');
-        }
-      } catch (error) {
-        console.error('Edit device error:', error);
-        showToast('Error updating device', 'error');
-      }
-    }
-
-    async function changeDeviceStatus(deviceId, currentStatus) {
-      const statuses = ['active', 'maintenance', 'inactive'];
-      const currentIndex = statuses.indexOf(currentStatus);
-      const nextStatus = statuses[(currentIndex + 1) % statuses.length];
-
-      if (!confirm(`Ubah status device ${deviceId} dari ${currentStatus} ke ${nextStatus}?`)) return;
-
-      try {
-        const response = await fetch(`/api/scanner/devices/${deviceId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
-          },
-          body: JSON.stringify({
-            status: nextStatus
-          })
-        });
-
-        const result = await response.json();
-        if (result.success) {
-          loadScannerDevices();
-          showToast(`Status device diubah ke ${nextStatus}`, 'success');
-        } else {
-          showToast('Gagal ubah status device', 'error');
-        }
-      } catch (error) {
-        console.error('Change status error:', error);
-        showToast('Error changing device status', 'error');
-      }
-    }
-
-    async function deleteDevice(deviceId) {
-      if (!confirm(`Yakin nonaktifkan device ${deviceId}? Device akan dinonaktifkan dan tidak bisa digunakan.`)) return;
-
-      try {
-        const response = await fetch(`/api/scanner/devices/${deviceId}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-
-        const result = await response.json();
-        if (result.success) {
-          loadScannerDevices();
-          showToast('Device berhasil dinonaktifkan', 'success');
-        } else {
-          showToast('Gagal nonaktifkan device', 'error');
-        }
-      } catch (error) {
-        console.error('Delete device error:', error);
-        showToast('Error deactivating device', 'error');
-      }
-    }
-
-    // Load QR logs (recent)
-    async function loadQRLogs() {
-      const tbody = document.getElementById('qr-logs-table');
-      try {
-        const response = await fetch('/api/scanner/attendance/logs?limit=10', {
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) {
-            if (result.data.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">Belum ada scan</td></tr>';
-              return;
-            }
-            tbody.innerHTML = result.data.map(log => `
-              <tr>
-                <td class="px-4 py-3 text-sm">
-                  <div class="font-medium">${log.teacher_name || 'Unknown'}</div>
-                  <div class="text-xs text-gray-500">${log.scan_id}</div>
-                </td>
-                <td class="px-4 py-3 text-sm text-gray-600">${log.school_name || log.tenant_id}</td>
-                <td class="px-4 py-3 text-sm text-gray-600">${log.device_name || log.device_id}</td>
-                <td class="px-4 py-3 text-sm text-gray-600">
-                  ${new Date(log.waktu_scan).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                </td>
-                <td class="px-4 py-3">
-                  <span class="px-2 py-1 text-xs font-semibold rounded-full ${
-                    log.sync_status === 'synced' ? 'bg-green-100 text-green-800' :
-                    log.sync_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                    log.sync_status === 'failed' ? 'bg-red-100 text-red-800' :
-                    'bg-gray-100 text-gray-800'
-                  }">${log.sync_status}</span>
-                </td>
-              </tr>
-            `).join('');
-          }
-        }
-      } catch (error) {
-        console.error('QR logs load error:', error);
-        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-red-500">Gagal memuat logs</td></tr>';
+        console.error('Error loading location for edit:', error);
+        showToast('Error memuat data lokasi', 'error');
       }
     }
 
@@ -3450,6 +3921,281 @@
         showToast('Error menghapus lokasi', 'error');
       }
     }
-  </script>
+
+    async function loadQRLogs() {
+        const tbody = document.getElementById('qr-logs-table');
+        try {
+          const response = await fetch('/api/scanner/attendance/logs?limit=10', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+         if (response.ok) {
+           const result = await response.json();
+           if (result.success) {
+             if (result.data.length === 0) {
+               tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">Belum ada scan</td></tr>';
+               return;
+             }
+             tbody.innerHTML = result.data.map(log => `
+               <tr>
+                 <td class="px-4 py-3 text-sm">
+                   <div class="font-medium">${log.teacher_name || 'Unknown'}</div>
+                   <div class="text-xs text-gray-500">${log.scan_id}</div>
+                 </td>
+                 <td class="px-4 py-3 text-sm text-gray-600">${log.school_name || log.tenant_id}</td>
+                 <td class="px-4 py-3 text-sm text-gray-600">${log.device_name || log.device_id}</td>
+                 <td class="px-4 py-3 text-sm text-gray-600">
+                   ${new Date(log.waktu_scan).toLocaleString('id-ID', { hour: '2-digit', minute:'2-digit' })}
+                 </td>
+                 <td class="px-4 py-3">
+                   <span class="px-2 py-1 text-xs font-semibold rounded-full ${
+                     log.sync_status === 'synced' ? 'bg-green-100 text-green-800' :
+                     log.sync_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                     log.sync_status === 'failed' ? 'bg-red-100 text-red-800' :
+                     'bg-gray-100 text-gray-800'
+                   }">${log.sync_status}</span>
+                 </td>
+               </tr>
+             `).join('');
+           }
+         }
+       } catch (error) {
+         console.error('Failed to load logs:', error);
+       }
+     }
+
+     // Refresh devices button
+     document.getElementById('refresh-devices')?.addEventListener('click', () => {
+       loadScannerDevices();
+       loadQRLogs();
+     });
+
+    // Add device button
+    document.getElementById('add-device-modal-btn')?.addEventListener('click', () => {
+      showAddDeviceModal();
+    });
+
+    // Device modal functions
+    async function showAddDeviceModal() {
+        console.log('Opening add device modal...');
+
+        // Hide all other modals first
+        document.querySelectorAll('.modal').forEach(modal => {
+          modal.classList.add('hidden');
+          modal.classList.remove('show');
+        });
+
+        document.getElementById('addDeviceForm').reset();
+
+        // Show modal first, then load data
+        const modal = document.getElementById('addDeviceModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('show');
+
+        // Load tenant options
+        setTimeout(function() {
+          loadDeviceTenantOptions();
+        }, 100);
+      }
+
+      async function loadDeviceTenantOptions() {
+        try {
+          console.log('Loading tenant options for device...');
+          const response = await fetch('/api/admin/tenants', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          console.log('Device tenant API response:', response.status);
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              const select = document.getElementById('deviceTenantId');
+              select.innerHTML = '<option value="">Pilih Sekolah</option>';
+              result.data.forEach(function(tenant) {
+                const option = document.createElement('option');
+                option.value = tenant.tenant_id;
+                option.textContent = tenant.nama_sekolah;
+                select.appendChild(option);
+              });
+              console.log('Device tenant options loaded:', result.data.length);
+            }
+          } else {
+            console.error('Failed to load tenants for device:', response.status);
+          }
+        } catch (error) {
+          console.error('Error loading tenants:', error);
+        }
+      }
+
+      function hideAddDeviceModal() {
+        console.log('Hiding add device modal...');
+        const modal = document.getElementById('addDeviceModal');
+        modal.classList.remove('show');
+        modal.classList.add('hidden');
+        document.getElementById('addDeviceForm').reset();
+        console.log('Device modal hidden');
+      }
+
+    // Auto-fill school name when tenant is selected
+    document.getElementById('deviceTenantId').addEventListener('change', function() {
+      const selectedOption = this.options[this.selectedIndex];
+      if (selectedOption && selectedOption.value) {
+        document.getElementById('deviceSchoolName').value = selectedOption.textContent;
+      } else {
+        document.getElementById('deviceSchoolName').value = '';
+      }
+    });
+
+    // Device form handler
+    document.getElementById('addDeviceForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const tenantId = document.getElementById('deviceTenantId').value;
+        const deviceId = document.getElementById('deviceId').value;
+        const deviceName = document.getElementById('deviceName').value;
+        const schoolName = document.getElementById('deviceSchoolName').value;
+
+        if (!tenantId || !deviceId || !schoolName) {
+          showToast('Semua field wajib diisi', 'error');
+          return;
+        }
+
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Menambah...';
+
+        try {
+          const response = await fetch('/api/scanner/devices', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+              device_id: deviceId,
+              tenant_id: tenantId,
+              school_name: schoolName,
+              device_name: deviceName || 'Scanner Tablet'
+            })
+          });
+
+          const result = await response.json();
+          if (result.success) {
+            showToast('Device berhasil ditambahkan! Secret key: ' + result.data.secret_key, 'success');
+            hideAddDeviceModal();
+            loadScannerDevices();
+          } else {
+            showToast('Gagal: ' + result.message, 'error');
+          }
+        } catch (error) {
+          console.error('Error adding device:', error);
+          showToast('Network error', 'error');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalText;
+        }
+      });
+
+    // Tab switching untuk QR generator
+    const originalShowTab = window.showTab || function(tab) {};
+    window.showTab = function(tab) {
+      originalShowTab(tab);
+      if (tab === 'qr-generator') {
+        loadScannerDevices();
+        loadQRLogs();
+        if (teacherListCache.length === 0) {
+          loadTeacherList();
+        }
+      }
+    };
+
+    // Device management functions
+    async function editDevice(deviceId) {
+        const newName = prompt('Masukkan nama device baru:', deviceId);
+        if (!newName || newName.trim() === '') return;
+
+        try {
+          const response = await fetch(`/api/scanner/devices/${deviceId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+              device_name: newName.trim()
+            })
+          });
+
+          const result = await response.json();
+          if (result.success) {
+            loadScannerDevices();
+            showToast('Device berhasil diupdate', 'success');
+          } else {
+            showToast('Gagal update device', 'error');
+          }
+        } catch (error) {
+          console.error('Edit device error:', error);
+          showToast('Error updating device', 'error');
+        }
+      }
+
+      async function changeDeviceStatus(deviceId, currentStatus) {
+        const statuses = ['active', 'maintenance', 'inactive'];
+        const currentIndex = statuses.indexOf(currentStatus);
+        const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+
+        if (!confirm(`Ubah status device ${deviceId} dari ${currentStatus} ke ${nextStatus}?`)) return;
+
+        try {
+          const response = await fetch(`/api/scanner/devices/${deviceId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+              status: nextStatus
+            })
+          });
+
+          const result = await response.json();
+          if (result.success) {
+            loadScannerDevices();
+            showToast(`Status device diubah ke ${nextStatus}`, 'success');
+          } else {
+            showToast('Gagal ubah status device', 'error');
+          }
+        } catch (error) {
+          console.error('Change status error:', error);
+          showToast('Error changing device status', 'error');
+        }
+      }
+
+    async function deleteDevice(deviceId) {
+      if (!confirm(`Yakin nonaktifkan device ${deviceId}? Device akan dinonaktifkan dan tidak bisa digunakan.`)) return;
+
+      try {
+        const response = await fetch(`/api/scanner/devices/${deviceId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          loadScannerDevices();
+          showToast('Device berhasil dinonaktifkan', 'success');
+        } else {
+          showToast('Gagal nonaktifkan device', 'error');
+        }
+      } catch (error) {
+        console.error('Delete device error:', error);
+        showToast('Error deactivating device', 'error');
+      }
+    }
+
+    // Initialize teacher list on load
+    setTimeout(loadTeacherList, 1000);
+    // End QR Generator functionality
+   </script>
 </body>
 </html>
