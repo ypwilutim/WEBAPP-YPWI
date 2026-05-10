@@ -848,6 +848,30 @@ async function processAttendance(qrData) {
     });
   }
 
+  // ==================== MOBILE DEBUG LOGGING ====================
+  async function sendClickLog(buttonName) {
+    try {
+      const response = await fetch(`${CONFIG.API_BASE}/log-click`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          button: buttonName,
+          userAgent: navigator.userAgent,
+          timestamp: new Date().toISOString(),
+          url: window.location.href
+        })
+      });
+
+      if (response.ok) {
+        console.log(`[LOG] ${buttonName} click logged to server`);
+      } else {
+        console.warn(`[LOG] Failed to log ${buttonName} click`);
+      }
+    } catch (error) {
+      console.warn(`[LOG] Error logging ${buttonName} click:`, error.message);
+    }
+  }
+
   // ==================== PWA REFRESH & VERSIONING ====================
   function forceAppRefresh() {
     console.log('[PWA] Force refreshing app...');
@@ -948,12 +972,11 @@ async function processAttendance(qrData) {
     console.log('[INIT] Service worker supported:', 'serviceWorker' in navigator);
     console.log('[INIT] Caches API supported:', 'caches' in window);
 
-    // Test DOM elements exist
-    console.log('[INIT] Testing DOM elements:');
-    console.log('[INIT] - torch-btn:', !!document.getElementById('torch-btn'));
-    console.log('[INIT] - switch-camera-btn:', !!document.getElementById('switch-camera-btn'));
-    console.log('[INIT] - force-refresh-btn:', !!document.getElementById('force-refresh-btn'));
-    console.log('[INIT] - test-btn:', !!document.getElementById('test-btn'));
+     // Test DOM elements exist
+     console.log('[INIT] Testing DOM elements:');
+     console.log('[INIT] - torch-btn:', !!document.getElementById('torch-btn'));
+     console.log('[INIT] - switch-camera-btn:', !!document.getElementById('switch-camera-btn'));
+     console.log('[INIT] - force-refresh-btn:', !!document.getElementById('force-refresh-btn'));
 
     // Ensure jsQR is loaded
     if (typeof jsQR === 'undefined') {
@@ -1024,43 +1047,47 @@ async function processAttendance(qrData) {
       initScanner();
     });
 
-    document.getElementById('sync-btn').addEventListener('click', () => {
+    document.getElementById('sync-btn')?.addEventListener('click', async () => {
+      await sendClickLog('sync'); // Log to server
       attemptSync();
     });
 
     document.getElementById('manual-scan-btn')?.addEventListener('click', async () => {
+      await sendClickLog('manual-scan'); // Log to server
       initScanner();
     });
 
     document.getElementById('torch-btn')?.addEventListener('click', async () => {
-      if (state.stream) {
-        try {
-          const videoTrack = state.stream.getVideoTracks()[0];
-          const capabilities = videoTrack.getCapabilities();
-          if ('torch' in capabilities) {
-            const currentTorch = videoTrack.getSettings().torch || false;
-            await videoTrack.applyConstraints({ advanced: [{ torch: !currentTorch }] });
-            const btn = document.getElementById('torch-btn');
-            if (btn) {
-              btn.classList.toggle('bg-yellow-600', !currentTorch);
-              btn.classList.toggle('bg-gray-600', currentTorch);
-              btn.title = !currentTorch ? 'Turn off torch' : 'Toggle flashlight';
-            }
-            showToast(!currentTorch ? 'Torch ON' : 'Torch OFF', 'info', 1500);
-          } else {
-            showToast('Torch tidak didukung oleh kamera ini', 'warning');
-          }
-        } catch (e) {
-          console.error('[TORCH] Error toggling torch:', e);
-          showToast('Gagal mengubah torch: ' + e.message, 'error');
-          }
-      } else {
-        showToast('Kamera belum aktif', 'warning');
-      }
-    });
+       await sendClickLog('torch'); // Log to server
+       if (state.stream) {
+         try {
+           const videoTrack = state.stream.getVideoTracks()[0];
+           const capabilities = videoTrack.getCapabilities();
+           if ('torch' in capabilities) {
+             const currentTorch = videoTrack.getSettings().torch || false;
+             await videoTrack.applyConstraints({ advanced: [{ torch: !currentTorch }] });
+               const btn = document.getElementById('torch-btn');
+               if (btn) {
+                 btn.classList.toggle('bg-yellow-600', !currentTorch);
+                 btn.classList.toggle('bg-gray-600', currentTorch);
+                 btn.title = !currentTorch ? 'Matikan torch' : 'Nyalakan torch';
+               }
+              showToast(!currentTorch ? 'Torch ON' : 'Torch OFF', 'info', 1500);
+           } else {
+             showToast('Torch tidak didukung oleh kamera ini', 'warning');
+           }
+         } catch (e) {
+           console.error('[TORCH] Error toggling torch:', e);
+           showToast('Gagal mengubah torch: ' + e.message, 'error');
+         }
+       } else {
+         showToast('Kamera belum aktif', 'warning');
+       }
+     });
 
     // Switch camera button
     document.getElementById('switch-camera-btn')?.addEventListener('click', async () => {
+      await sendClickLog('switch-camera'); // Log to server
       if (state.stream) {
         state.currentFacingMode = state.currentFacingMode === 'environment' ? 'user' : 'environment';
         await stopScanner();
@@ -1073,8 +1100,9 @@ async function processAttendance(qrData) {
     const forceRefreshBtn = document.getElementById('force-refresh-btn');
     if (forceRefreshBtn) {
       console.log('[INIT] Force refresh button found, adding listener');
-      forceRefreshBtn.addEventListener('click', () => {
+      forceRefreshBtn.addEventListener('click', async () => {
         console.log('[BUTTON] Force refresh clicked');
+        await sendClickLog('force-refresh'); // Log to server
         if (typeof forceAppRefresh === 'function') {
           forceAppRefresh();
         } else {
@@ -1084,24 +1112,6 @@ async function processAttendance(qrData) {
       });
     } else {
       console.warn('[INIT] Force refresh button not found in DOM');
-    }
-
-    // Test button
-    const testBtn = document.getElementById('test-btn');
-    if (testBtn) {
-      console.log('[INIT] Test button found, adding listener');
-      testBtn.addEventListener('click', () => {
-        console.log('[BUTTON] Test button clicked');
-        // Visual feedback
-        testBtn.classList.add('button-click');
-        setTimeout(() => testBtn.classList.remove('button-click'), 300);
-
-        alert('Tombol test berhasil diklik! 🎉'); // Alert + toast
-        showToast('Tombol test berhasil! 🎉', 'success', 3000);
-      });
-    } else {
-      console.warn('[INIT] Test button not found in DOM');
-      alert('Tombol test tidak ditemukan di DOM!');
     }
 
     document.getElementById('close-modal').addEventListener('click', () => {
@@ -1120,8 +1130,7 @@ async function processAttendance(qrData) {
       switch: !!document.getElementById('switch-camera-btn'),
       sync: !!document.getElementById('sync-btn'),
       manual: !!document.getElementById('manual-scan-btn'),
-      force: !!document.getElementById('force-refresh-btn'),
-      test: !!document.getElementById('test-btn')
+      force: !!document.getElementById('force-refresh-btn')
     });
   }
 

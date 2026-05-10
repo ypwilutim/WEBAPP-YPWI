@@ -1228,10 +1228,36 @@ app.get('/api/admin/attendance-logs', authenticateAdmin, async (req, res) => {
 app.get('/api/admin/tenants', authenticateAdmin, async (req, res) => {
   try {
     console.log('Fetching tenants with location data...');
-    const tenants = await db.query('SELECT tenant_id, nama_sekolah, COALESCE(latitude, NULL) as latitude, COALESCE(longitude, NULL) as longitude, COALESCE(location_radius, 100) as location_radius, location_name, use_central_rules FROM tenants ORDER BY nama_sekolah ASC');
+    const tenants = await db.query(`
+      SELECT
+        tenant_id,
+        nama_sekolah,
+        absensi_method,
+        use_central_rules,
+        latitude,
+        longitude,
+        COALESCE(location_radius, 100) as location_radius,
+        location_name
+      FROM tenants
+      ORDER BY nama_sekolah ASC
+    `);
     console.log('Tenants fetched:', tenants.length, 'records');
     console.log('First tenant sample:', tenants[0]);
-    res.json({ success: true, data: tenants });
+
+    // Format data for frontend
+    const result = tenants.map(tenant => ({
+      tenant_id: tenant.tenant_id,
+      nama_sekolah: tenant.nama_sekolah,
+      absensi_method: tenant.absensi_method,
+      use_central_rules: tenant.use_central_rules,
+      latitude: tenant.latitude,
+      longitude: tenant.longitude,
+      location_radius: tenant.location_radius,
+      location_name: tenant.location_name,
+      has_location: !!(tenant.latitude && tenant.longitude)
+    }));
+
+    res.json({ success: true, data: result });
   } catch (error) {
     console.error('Admin tenants error:', error);
     res.status(500).json({ success: false, message: 'Error fetching tenants' });
@@ -1406,7 +1432,7 @@ app.get('/api/admin/tenants/:tenantId', authenticateAdmin, async (req, res) => {
   }
 });
 
-// Admin update tenant location
+// Admin update tenant (including location)
 app.put('/api/admin/tenants/:tenantId', authenticateAdmin, async (req, res) => {
   try {
     const { tenantId } = req.params;
@@ -1423,48 +1449,79 @@ app.put('/api/admin/tenants/:tenantId', authenticateAdmin, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Radius lokasi harus antara 10 dan 1000 meter' });
     }
 
-    // Build update query dynamically
-    let updateFields = [];
-    let updateValues = [];
+    // Update tenant basic info
+    const tenantFields = [];
+    const tenantValues = [];
 
-    if (latitude !== undefined) {
-      updateFields.push('latitude = ?');
-      updateValues.push(latitude);
-    }
-    if (longitude !== undefined) {
-      updateFields.push('longitude = ?');
-      updateValues.push(longitude);
-    }
-    if (location_radius !== undefined) {
-      updateFields.push('location_radius = ?');
-      updateValues.push(location_radius);
-    }
-    if (location_name !== undefined) {
-      updateFields.push('location_name = ?');
-      updateValues.push(location_name);
-    }
     if (use_central_rules !== undefined) {
-      updateFields.push('use_central_rules = ?');
-      updateValues.push(use_central_rules ? 1 : 0);
+      tenantFields.push('use_central_rules = ?');
+      tenantValues.push(use_central_rules ? 1 : 0);
     }
 
-    if (updateFields.length === 0) {
-      return res.status(400).json({ success: false, message: 'Tidak ada data yang diupdate' });
+    // Handle location update/insert in tenant_locations
+    if (latitude !== undefined || longitude !== undefined || location_radius !== undefined || location_name !== undefined) {
+      // Check if active location exists for this tenant
+      const existingLocations = await db.query(
+        'SELECT id FROM tenant_locations WHERE tenant_id = ? AND is_active = 1',
+        [tenantId]
+      );
+
+      if (existingLocations.length > 0) {
+        // Update existing active location
+        const locationFields = [];
+        const locationValues = [];
+
+        if (latitude !== undefined) {
+          locationFields.push('latitude = ?');
+          locationValues.push(latitude);
+        }
+        if (longitude !== undefined) {
+          locationFields.push('longitude = ?');
+          locationValues.push(longitude);
+        }
+        if (location_radius !== undefined) {
+          locationFields.push('location_radius = ?');
+          locationValues.push(location_radius);
+        }
+        if (location_name !== undefined) {
+          locationFields.push('location_name = ?');
+          locationValues.push(location_name);
+        }
+
+        locationValues.push(existingLocations[0].id);
+        await db.query(
+          `UPDATE tenant_locations SET ${locationFields.join(', ')}, updated_at = NOW() WHERE id = ?`,
+          locationValues
+        );
+      } else {
+        // Insert new active location
+        await db.query(
+          `INSERT INTO tenant_locations (tenant_id, location_name, latitude, longitude, location_radius, is_active, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, 1, NOW(), NOW())`,
+          [
+            tenantId,
+            location_name || 'Lokasi Utama',
+            latitude || null,
+            longitude || null,
+            location_radius || 100
+          ]
+        );
+      }
     }
 
-    updateValues.push(tenantId); // Add tenant_id for WHERE clause
-
-    const query = `UPDATE tenants SET ${updateFields.join(', ')}, updated_at = NOW() WHERE tenant_id = ?`;
-    const result = await db.query(query, updateValues);
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: 'Tenant tidak ditemukan' });
+    // Update tenant table if there are fields to update
+    if (tenantFields.length > 0) {
+      tenantValues.push(tenantId);
+      await db.query(
+        `UPDATE tenants SET ${tenantFields.join(', ')}, updated_at = NOW() WHERE tenant_id = ?`,
+        tenantValues
+      );
     }
 
-    res.json({ success: true, message: 'Lokasi sekolah berhasil diupdate' });
+    res.json({ success: true, message: 'Data sekolah berhasil diperbarui' });
   } catch (error) {
-    console.error('Admin update tenant location error:', error);
-    res.status(500).json({ success: false, message: 'Error updating tenant location' });
+    console.error('Admin update tenant error:', error);
+    res.status(500).json({ success: false, message: 'Error updating tenant' });
   }
 });
 
@@ -2413,6 +2470,30 @@ async function startServer() {
 
     // Insert sample data
     try {
+      // Create missing tables if they don't exist
+      console.log('Checking for missing tables...');
+      try {
+        await db.query(`
+          CREATE TABLE IF NOT EXISTS tenant_locations (
+            id INT(11) NOT NULL AUTO_INCREMENT,
+            tenant_id VARCHAR(20) NOT NULL,
+            location_name VARCHAR(100) NOT NULL,
+            latitude DECIMAL(10,8) DEFAULT NULL,
+            longitude DECIMAL(11,8) DEFAULT NULL,
+            location_radius INT(11) DEFAULT 100,
+            is_active TINYINT(1) DEFAULT 1,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),
+            PRIMARY KEY (id),
+            KEY tenant_id (tenant_id),
+            CONSTRAINT tenant_locations_ibfk_1 FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id) ON DELETE CASCADE
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('tenant_locations table created or already exists');
+      } catch (tableError) {
+        console.log('Table creation check completed:', tableError.message);
+      }
+
       console.log('Inserting sample data...');
       // Insert sample tenants
       await db.query("INSERT IGNORE INTO tenants (tenant_id, nama_sekolah, absensi_method) VALUES ('YPWILUTIM', 'YPWI Lutim Pusat', 'personal')");
@@ -2964,6 +3045,23 @@ Terima kasih telah melakukan absensi!`;
           force_refresh: 'Force app refresh',
           test: 'Test button'
         }
+      });
+    });
+
+    /**
+     * POST /api/log-click
+     * Log button clicks from scanner (for mobile debugging)
+     */
+    app.post('/api/log-click', (req, res) => {
+      const { button, userAgent, timestamp } = req.body;
+      console.log(`[BUTTON-CLICK] ${button} clicked at ${timestamp}`);
+      console.log(`[BUTTON-CLICK] User-Agent: ${req.get('User-Agent')}`);
+      console.log(`[BUTTON-CLICK] IP: ${req.ip}`);
+
+      res.json({
+        success: true,
+        message: `Button ${button} click logged`,
+        timestamp: new Date().toISOString()
       });
     });
 

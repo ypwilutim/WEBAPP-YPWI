@@ -17,11 +17,11 @@
    <!-- QR Scanner Library - Using jsQR -->
    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 
-   <!-- Font Awesome Icons -->
-   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-   <!-- Tailwind CSS (via CDN) -->
-   <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS (production build) -->
+    <link href="/css/tailwind.css" rel="stylesheet">
 
   <style>
     body {
@@ -184,16 +184,8 @@
   </style>
 </head>
   <body>
-  <!-- Simple test to ensure page loads -->
-  <script>
-    console.log('🔥 SCANNER.HTML LOADED!');
-    console.log('🔥 Current URL:', window.location.href);
-    console.log('🔥 Timestamp:', new Date().toISOString());
-    alert('Scanner page loaded! Check console for logs.');
-  </script>
-
-  <!-- Header -->
-  <header id="scanner-header" class="scanner-content">
+   <!-- Header -->
+   <header id="scanner-header" class="scanner-content">
     <div class="flex justify-between items-center">
       <div class="flex items-center space-x-3">
         <img src="/assets/images/YPWI LOGO HITAM.png" alt="Logo" class="w-10 h-10 object-contain bg-white rounded-lg p-1">
@@ -202,33 +194,12 @@
           <p class="text-sm text-gray-300" id="school-name">Loading...</p>
         </div>
       </div>
-       <div class="flex items-center space-x-2">
-         <div id="connection-status" class="flex items-center space-x-2">
-           <span class="status-dot status-offline" id="status-dot"></span>
-           <span class="text-sm" id="status-text">Offline</span>
-         </div>
-          <div class="relative">
-            <button id="sync-btn" class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition" disabled title="Sync offline data">
-              <i class="fas fa-sync-alt"></i>
-            </button>
-            <span id="pending-badge" class="badge-pending hidden">0</span>
+        <div class="flex items-center space-x-2">
+          <div id="connection-status" class="flex items-center space-x-2">
+            <span class="status-dot status-offline" id="status-dot"></span>
+            <span class="text-sm" id="status-text">Offline</span>
           </div>
-          <button id="manual-scan-btn" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition text-sm" title="Scan QR Manual">
-            <i class="fas fa-qrcode mr-1"></i>Scan
-          </button>
-<button id="torch-btn" class="bg-yellow-600 hover:bg-yellow-700 text-white p-2 rounded-lg transition" title="Toggle flashlight">
-             <i class="fas fa-lightbulb"></i>
-           </button>
-           <button id="switch-camera-btn" class="bg-purple-600 hover:bg-purple-700 text-white p-2 rounded-lg transition" title="Ganti Kamera">
-             <i class="fas fa-sync-alt"></i>
-           </button>
-            <button id="force-refresh-btn" class="bg-orange-600 hover:bg-orange-700 text-white p-2 rounded-lg transition" title="Force Refresh">
-              <i class="fas fa-sync-alt"></i>
-            </button>
-            <button id="test-btn" class="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition" title="Test Button">
-              <i class="fas fa-exclamation"></i>
-            </button>
-         </div>
+        </div>
        </div>
      </div>
    </header>
@@ -323,9 +294,8 @@
     <span id="queue-count">0</span> pending
   </div>
 
-    <!-- QR Scanner Library - Using jsQR -->
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-    <script src="/js/scanner-app.js"></script>
+     <!-- QR Scanner Library -->
+     <script src="/js/scanner-app.js"></script>
     <script>
       // Register Service Worker
       if ('serviceWorker' in navigator) {

@@ -84,7 +84,9 @@ self.addEventListener('fetch', (event) => {
       }
       return fetch(request).then(networkResp => {
         if (networkResp.ok) {
-          caches.open(CACHE_NAME).then(cache => cache.put(request, networkResp.clone()));
+          // IMPORTANT: Clone immediately before returning to avoid body-used errors
+          const respClone = networkResp.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, respClone));
         }
         return networkResp;
       }).catch(() => {
