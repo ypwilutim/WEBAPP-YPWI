@@ -500,7 +500,7 @@
                 <i class="fas fa-history text-purple-600 mr-2"></i>
                 Log Scan QR Terbaru
               </h4>
-              <a href="#" onclick="switchTab('attendance'); return false;" class="text-sm text-blue-600 hover:text-blue-800">
+              <a href="#" onclick="showTab('attendance'); return false;" class="text-sm text-blue-600 hover:text-blue-800">
                 Lihat Semua
               </a>
             </div>
@@ -871,846 +871,406 @@
     </div>
   </div>
 
-  <!-- Location Modal (for editing tenant data in tenants table) -->
-  <div id="locationModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 justify-center items-center">
-    <div class="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-      <div class="p-6">
-        <div class="flex items-center justify-between mb-6">
-          <div class="flex items-center">
-            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-              <i class="fas fa-map-marker-alt text-blue-600"></i>
-            </div>
-            <div>
-              <h3 id="locationModalTitle" class="text-lg font-semibold text-gray-900">Edit Data Sekolah</h3>
-              <p class="text-gray-600 text-sm">Edit informasi dan lokasi sekolah</p>
-            </div>
-          </div>
-          <button onclick="hideLocationModal()" class="text-gray-400 hover:text-gray-600">
-            <i class="fas fa-times text-xl"></i>
-          </button>
-        </div>
-
-        <form id="locationForm">
-          <input type="hidden" name="tenant_id" id="locationTenantIdHidden">
-
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Sekolah</label>
-            <input type="text" name="nama_sekolah" id="locationNamaSekolah" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50" readonly>
-          </div>
-
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Tenant ID</label>
-            <input type="text" name="tenant_id_display" id="locationTenantIdDisplay" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50" readonly>
-          </div>
-
-          <!-- Location Input Methods -->
-          <div class="mb-6 space-y-4">
-            <!-- Auto Detect Section -->
-            <div class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-              <div class="flex items-center justify-between mb-3">
-                <h4 class="font-medium text-blue-900">Auto Detect Lokasi</h4>
-                <button type="button" id="autoDetectModalBtn" class="inline-flex items-center px-3 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
-                  <i class="fas fa-crosshairs mr-2"></i>
-                  Detect Location
-                </button>
+    <!-- Add Device Modal -->
+    <div id="addDeviceModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 justify-center items-center hidden">
+      <div class="bg-white rounded-lg max-w-md w-full mx-4">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+              <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
+                <i class="fas fa-tablet-alt text-green-600"></i>
               </div>
-              <div id="locationStatus" class="text-sm text-blue-700">
-                <i class="fas fa-info-circle mr-1"></i>
-                Klik tombol di atas untuk mendapatkan koordinat GPS saat ini
-              </div>
+              <h3 class="text-lg font-semibold text-gray-900">Tambah Scanner Device</h3>
             </div>
-
-            <!-- Map Picker Section -->
-            <div class="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-              <div class="flex items-center justify-between mb-3">
-                <h4 class="font-medium text-green-900">Pilih dari Peta</h4>
-                <button type="button" onclick="toggleMap()" class="inline-flex items-center px-3 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
-                  <i class="fas fa-map-marked-alt mr-2"></i>
-                  <span id="mapToggleText">Buka Peta</span>
-                </button>
-              </div>
-              <div class="text-sm text-green-700">
-                <i class="fas fa-mouse-pointer mr-1"></i>
-                Klik pada peta untuk memilih lokasi secara manual
-              </div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                <i class="fas fa-globe-asia mr-1"></i>
-                Latitude
-              </label>
-              <input type="number" step="0.000001" name="latitude" id="latitudeInput" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-              <p class="text-xs text-gray-500 mt-1">Contoh: -6.208763</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                <i class="fas fa-globe-asia mr-1"></i>
-                Longitude
-              </label>
-              <input type="number" step="0.000001" name="longitude" id="longitudeInput" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-              <p class="text-xs text-gray-500 mt-1">Contoh: 106.845599</p>
-            </div>
-          </div>
-
-          <!-- Manual Coordinate Help -->
-          <div class="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-            <h6 class="text-sm font-medium text-blue-900 mb-3 flex items-center">
-              <i class="fas fa-lightbulb mr-2"></i>
-              Panduan Mendapatkan Koordinat
-            </h6>
-            <div class="space-y-2 text-sm text-blue-800">
-              <div class="flex items-start">
-                <span class="inline-block w-6 h-6 bg-blue-200 text-blue-900 rounded-full text-xs font-bold flex items-center justify-center mr-3 mt-0.5">1</span>
-                <div>
-                  <strong>Google Maps:</strong> Klik kanan lokasi sekolah → pilih "What's here?" → salin koordinat yang muncul
-                </div>
-              </div>
-              <div class="flex items-start">
-                <span class="inline-block w-6 h-6 bg-blue-200 text-blue-900 rounded-full text-xs font-bold flex items-center justify-center mr-3 mt-0.5">2</span>
-                <div>
-                  <strong>Peta Interaktif:</strong> Klik pada peta di atas untuk memilih lokasi langsung
-                </div>
-              </div>
-              <div class="flex items-start">
-                <span class="inline-block w-6 h-6 bg-blue-200 text-blue-900 rounded-full text-xs font-bold flex items-center justify-center mr-3 mt-0.5">3</span>
-                <div>
-                  <strong>GPS Device:</strong> Gunakan aplikasi GPS atau kompas untuk mendapatkan koordinat akurat
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              <i class="fas fa-ruler-combined mr-1"></i>
-              Radius Lokasi (meter)
-            </label>
-            <input type="number" name="location_radius" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" min="10" max="1000" value="100" required>
-            <p class="text-xs text-gray-500 mt-1">Jarak maksimal dari lokasi sekolah untuk absensi valid</p>
-          </div>
-
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              <i class="fas fa-tag mr-1"></i>
-              Nama Lokasi
-            </label>
-            <input type="text" name="location_name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Contoh: Sekolah Dasar XYZ, Jakarta">
-            <p class="text-xs text-gray-500 mt-1">Opsional: Berikan nama deskriptif untuk lokasi</p>
-          </div>
-
-          <!-- Map Container -->
-          <div id="mapContainer" class="mb-6 hidden">
-            <div class="mb-4 flex items-center justify-between">
-              <div>
-                <h5 class="font-semibold text-gray-900 flex items-center">
-                  <i class="fas fa-map-marked-alt mr-2 text-green-600"></i>
-                  Peta Lokasi Interaktif
-                </h5>
-                <p class="text-sm text-gray-600 mt-1">Klik pada peta untuk memilih koordinat</p>
-              </div>
-              <div class="flex items-center space-x-2">
-                <button type="button" onclick="centerMapOnCurrent()" class="inline-flex items-center px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
-                  <i class="fas fa-crosshairs mr-1"></i>
-                  Center
-                </button>
-                <button type="button" onclick="clearMapMarker()" class="inline-flex items-center px-3 py-2 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors">
-                  <i class="fas fa-trash mr-1"></i>
-                  Clear
-                </button>
-              </div>
-            </div>
-            <div id="locationMap" style="height: 320px; border-radius: 0.75rem; border: 2px solid #e5e7eb; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);"></div>
-            <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div class="flex items-start">
-                <i class="fas fa-info-circle text-yellow-600 mt-0.5 mr-2"></i>
-                <div class="text-sm text-yellow-800">
-                  <strong>Tips:</strong> Klik di mana saja pada peta untuk menempatkan marker. Marker merah dapat digeser untuk penyesuaian presisi.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Coordinate Display -->
-          <div class="mb-6 p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg border border-gray-200">
-            <div class="flex items-center justify-between mb-3">
-              <h4 class="font-semibold text-gray-900 flex items-center">
-                <i class="fas fa-map-pin mr-2 text-blue-600"></i>
-                Koordinat Lokasi
-              </h4>
-              <button type="button" onclick="copyCoordinates()" class="inline-flex items-center px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors" title="Salin koordinat">
-                <i class="fas fa-copy mr-1"></i>
-                Copy
-              </button>
-            </div>
-            <div id="coordinatePreview" class="text-sm font-mono bg-white px-4 py-3 rounded-md border border-gray-300 cursor-pointer hover:border-blue-400 transition-colors">
-              <span class="text-gray-500">Belum ada koordinat dipilih</span>
-            </div>
-            <div class="mt-2 flex items-center justify-between text-xs text-gray-600">
-              <span>Format: Latitude, Longitude (Decimal Degrees)</span>
-              <span id="coordinateAccuracy" class="text-green-600 hidden">
-                <i class="fas fa-check-circle mr-1"></i>
-                Akurat
-              </span>
-            </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="flex space-x-3 pt-4 border-t border-gray-200">
-            <button type="button" onclick="hideLocationModal()" class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200">
-              <i class="fas fa-times mr-2"></i>
-              Batal
-            </button>
-            <button type="submit" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-lg text-sm font-medium text-white hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105">
-              <i class="fas fa-save mr-2"></i>
-              Simpan Perubahan
+            <button onclick="hideAddDeviceModal()" class="text-gray-400 hover:text-gray-600">
+              <i class="fas fa-times text-xl"></i>
             </button>
           </div>
-        </form>
+
+          <form id="addDeviceForm">
+           <input type="hidden" name="tenant_id" id="locationTenantIdHidden">
+
+           <div class="mb-4">
+             <label class="block text-sm font-medium text-gray-700 mb-2">
+               <i class="fas fa-school mr-1"></i>
+               Pilih Sekolah
+             </label>
+             <select name="tenant_id" id="deviceTenantId" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+               <option value="">Pilih Sekolah</option>
+             </select>
+             <input type="hidden" name="nama_sekolah" id="locationNamaSekolah">
+           </div>
+
+           <!-- Location Input Methods -->
+           <div class="mb-6 space-y-4">
+             <!-- Auto Detect Section -->
+             <div class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+               <div class="flex items-center justify-between mb-3">
+                 <h4 class="font-medium text-blue-900">Auto Detect Lokasi</h4>
+                 <button type="button" id="autoDetectModalBtn" class="inline-flex items-center px-3 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                   <i class="fas fa-crosshairs mr-2"></i>
+                   Detect Location
+                 </button>
+               </div>
+               <div id="locationStatus" class="text-sm text-blue-700">
+                 <i class="fas fa-info-circle mr-1"></i>
+                 Klik tombol di atas untuk mendapatkan koordinat GPS saat ini
+               </div>
+             </div>
+
+             <!-- Map Picker Section -->
+             <div class="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+               <div class="flex items-center justify-between mb-3">
+                 <h4 class="font-medium text-green-900">Pilih dari Peta</h4>
+                 <button type="button" onclick="toggleMap()" class="inline-flex items-center px-3 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
+                   <i class="fas fa-map-marked-alt mr-2"></i>
+                   <span id="mapToggleText">Buka Peta</span>
+                 </button>
+               </div>
+               <div class="text-sm text-green-700">
+                 <i class="fas fa-mouse-pointer mr-1"></i>
+                 Klik pada peta untuk memilih lokasi secara manual
+               </div>
+             </div>
+           </div>
+
+           <div class="grid grid-cols-2 gap-4 mb-4">
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-2">
+                 <i class="fas fa-globe-asia mr-1"></i>
+                 Latitude
+               </label>
+               <input type="number" step="0.000001" name="latitude" id="latitudeInput" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+               <p class="text-xs text-gray-500 mt-1">Contoh: -6.208763</p>
+             </div>
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-2">
+                 <i class="fas fa-globe-asia mr-1"></i>
+                 Longitude
+               </label>
+               <input type="number" step="0.000001" name="longitude" id="longitudeInput" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+               <p class="text-xs text-gray-500 mt-1">Contoh: 106.845599</p>
+             </div>
+           </div>
+
+           <!-- Manual Coordinate Help -->
+           <div class="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+             <h6 class="text-sm font-medium text-blue-900 mb-3 flex items-center">
+               <i class="fas fa-lightbulb mr-2"></i>
+               Panduan Mendapatkan Koordinat
+             </h6>
+             <div class="space-y-2 text-sm text-blue-800">
+               <div class="flex items-start">
+                 <span class="inline-block w-6 h-6 bg-blue-200 text-blue-900 rounded-full text-xs font-bold flex items-center justify-center mr-3 mt-0.5">1</span>
+                 <div>
+                   <strong>Google Maps:</strong> Klik kanan lokasi sekolah → pilih "What's here?" → salin koordinat yang muncul
+                 </div>
+               </div>
+               <div class="flex items-start">
+                 <span class="inline-block w-6 h-6 bg-blue-200 text-blue-900 rounded-full text-xs font-bold flex items-center justify-center mr-3 mt-0.5">2</span>
+                 <div>
+                   <strong>Peta Interaktif:</strong> Klik pada peta di atas untuk memilih lokasi langsung
+                 </div>
+               </div>
+               <div class="flex items-start">
+                 <span class="inline-block w-6 h-6 bg-blue-200 text-blue-900 rounded-full text-xs font-bold flex items-center justify-center mr-3 mt-0.5">3</span>
+                 <div>
+                   <strong>GPS Device:</strong> Gunakan aplikasi GPS atau kompas untuk mendapatkan koordinat akurat
+                 </div>
+               </div>
+             </div>
+           </div>
+
+           <div class="mb-4">
+             <label class="block text-sm font-medium text-gray-700 mb-2">
+               <i class="fas fa-ruler-combined mr-1"></i>
+               Radius Lokasi (meter)
+             </label>
+             <input type="number" name="location_radius" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" min="10" max="1000" value="100" required>
+             <p class="text-xs text-gray-500 mt-1">Jarak maksimal dari lokasi sekolah untuk absensi valid</p>
+           </div>
+
+           <div class="mb-6">
+             <label class="block text-sm font-medium text-gray-700 mb-2">
+               <i class="fas fa-tag mr-1"></i>
+               Nama Lokasi
+             </label>
+             <input type="text" name="location_name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Contoh: Sekolah Dasar XYZ, Jakarta">
+             <p class="text-xs text-gray-500 mt-1">Opsional: Berikan nama deskriptif untuk lokasi</p>
+           </div>
+
+           <!-- Map Container -->
+           <div id="mapContainer" class="mb-6 hidden">
+             <div class="mb-4 flex items-center justify-between">
+               <div>
+                 <h5 class="font-semibold text-gray-900 flex items-center">
+                   <i class="fas fa-map-marked-alt mr-2 text-green-600"></i>
+                   Peta Lokasi Interaktif
+                 </h5>
+                 <p class="text-sm text-gray-600 mt-1">Klik pada peta untuk memilih koordinat</p>
+               </div>
+               <div class="flex space-x-2">
+                 <button type="button" onclick="centerMapOnCurrent()" class="inline-flex items-center px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+                   <i class="fas fa-crosshairs mr-1"></i>
+                   Center
+                 </button>
+                 <button type="button" onclick="clearMapMarker()" class="inline-flex items-center px-3 py-2 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors">
+                   <i class="fas fa-trash mr-1"></i>
+                   Clear
+                 </button>
+               </div>
+             </div>
+             <div id="locationMap" style="height: 320px; border-radius: 0.75rem; border: 2px solid #e5e7eb; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);"></div>
+             <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+               <div class="flex items-start">
+                 <i class="fas fa-info-circle text-yellow-600 mt-0.5 mr-2"></i>
+                 <div class="text-sm text-yellow-800">
+                   <strong>Tips:</strong> Klik di mana saja pada peta untuk menempatkan marker. Marker merah dapat digeser untuk penyesuaian presisi.
+                 </div>
+               </div>
+             </div>
+           </div>
+
+           <!-- Coordinate Display -->
+           <div class="mb-6 p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg border border-gray-200">
+             <div class="flex items-center justify-between mb-3">
+               <h5 class="font-semibold text-gray-900 flex items-center">
+                 <i class="fas fa-map-pin mr-2 text-blue-600"></i>
+                 Koordinat Lokasi
+               </h5>
+               <button type="button" onclick="copyCoordinates()" class="inline-flex items-center px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors" title="Salin koordinat">
+                 <i class="fas fa-copy mr-1"></i>
+                 Copy
+               </button>
+             </div>
+             <div id="coordinatePreview" class="text-sm font-mono bg-white px-4 py-3 rounded-md border border-gray-300 cursor-pointer hover:border-blue-400 transition-colors">
+               <span class="text-gray-500">Belum ada koordinat dipilih</span>
+             </div>
+             <div class="mt-2 flex items-center justify-between text-xs text-gray-600">
+               <span>Format: Latitude, Longitude (Decimal Degrees)</span>
+               <span id="coordinateAccuracy" class="text-green-600 hidden">
+                 <i class="fas fa-check-circle mr-1"></i>
+                 Akurat
+               </span>
+             </div>
+           </div>
+
+           <!-- Action Buttons -->
+           <div class="flex space-x-3 pt-4 border-t border-gray-200">
+             <button type="button" onclick="hideTenantLocationModal()" class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200">
+               <i class="fas fa-times mr-2"></i>
+               Batal
+             </button>
+             <button type="submit" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-lg text-sm font-medium text-white hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105">
+               <i class="fas fa-save mr-2"></i>
+               Simpan Lokasi
+             </button>
+           </div>
+         </form>
+</div>
       </div>
     </div>
-  </div>
-            <div>
-              <h3 id="locationModalTitle" class="text-lg font-semibold text-gray-900">Konfigurasi Lokasi Sekolah</h3>
-              <p class="text-gray-600 text-sm">Atur koordinat GPS untuk validasi absensi</p>
-            </div>
-          </div>
-          <button onclick="hideLocationModal()" class="text-gray-400 hover:text-gray-600">
-            <i class="fas fa-times text-xl"></i>
-          </button>
-        </div>
 
-        <form id="locationForm">
-          <input type="hidden" name="tenant_id" id="locationTenantIdHidden">
-
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              <i class="fas fa-school mr-1"></i>
-              Pilih Sekolah
-            </label>
-            <select name="tenant_id" id="locationTenantSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-              <option value="">Pilih Sekolah</option>
-            </select>
-            <input type="hidden" name="nama_sekolah" id="locationNamaSekolah">
-          </div>
-
-          <!-- Location Input Methods -->
-          <div class="mb-6 space-y-4">
-            <!-- Auto Detect Section -->
-            <div class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-              <div class="flex items-center justify-between mb-3">
-                <h4 class="font-medium text-blue-900">Auto Detect Lokasi</h4>
-                <button type="button" id="autoDetectModalBtn" class="inline-flex items-center px-3 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
-                  <i class="fas fa-crosshairs mr-2"></i>
-                  Detect Location
-                </button>
+    <!-- Tenant Location Modal (Settings) -->
+    <div id="tenantLocationModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 justify-center items-center hidden">
+      <div class="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center space-x-4">
+              <div class="bg-blue-600 p-3 rounded-lg text-white">
+                <i class="fas fa-map-marked-alt text-2xl"></i>
               </div>
-              <div id="locationStatus" class="text-sm text-blue-700">
-                <i class="fas fa-info-circle mr-1"></i>
-                Klik tombol di atas untuk mendapatkan koordinat GPS saat ini
-              </div>
-            </div>
-
-            <!-- Map Picker Section -->
-            <div class="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-              <div class="flex items-center justify-between mb-3">
-                <h4 class="font-medium text-green-900">Pilih dari Peta</h4>
-                <button type="button" onclick="toggleMap()" class="inline-flex items-center px-3 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
-                  <i class="fas fa-map-marked-alt mr-2"></i>
-                  <span id="mapToggleText">Buka Peta</span>
-                </button>
-              </div>
-              <div class="text-sm text-green-700">
-                <i class="fas fa-mouse-pointer mr-1"></i>
-                Klik pada peta untuk memilih lokasi secara manual
-              </div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                <i class="fas fa-globe-asia mr-1"></i>
-                Latitude
-              </label>
-              <input type="number" step="0.000001" name="latitude" id="latitudeInput" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-              <p class="text-xs text-gray-500 mt-1">Contoh: -6.208763</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                <i class="fas fa-globe-asia mr-1"></i>
-                Longitude
-              </label>
-              <input type="number" step="0.000001" name="longitude" id="longitudeInput" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-              <p class="text-xs text-gray-500 mt-1">Contoh: 106.845599</p>
-            </div>
-          </div>
-
-          <!-- Manual Coordinate Help -->
-          <div class="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-            <h6 class="text-sm font-medium text-blue-900 mb-3 flex items-center">
-              <i class="fas fa-lightbulb mr-2"></i>
-              Panduan Mendapatkan Koordinat
-            </h6>
-            <div class="space-y-2 text-sm text-blue-800">
-              <div class="flex items-start">
-                <span class="inline-block w-6 h-6 bg-blue-200 text-blue-900 rounded-full text-xs font-bold flex items-center justify-center mr-3 mt-0.5">1</span>
-                <div>
-                  <strong>Google Maps:</strong> Klik kanan lokasi sekolah → pilih "What's here?" → salin koordinat yang muncul
-                </div>
-              </div>
-              <div class="flex items-start">
-                <span class="inline-block w-6 h-6 bg-blue-200 text-blue-900 rounded-full text-xs font-bold flex items-center justify-center mr-3 mt-0.5">2</span>
-                <div>
-                  <strong>Peta Interaktif:</strong> Klik pada peta di atas untuk memilih lokasi langsung
-                </div>
-              </div>
-              <div class="flex items-start">
-                <span class="inline-block w-6 h-6 bg-blue-200 text-blue-900 rounded-full text-xs font-bold flex items-center justify-center mr-3 mt-0.5">3</span>
-                <div>
-                  <strong>GPS Device:</strong> Gunakan aplikasi GPS atau kompas untuk mendapatkan koordinat akurat
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              <i class="fas fa-ruler-combined mr-1"></i>
-              Radius Lokasi (meter)
-            </label>
-            <input type="number" name="location_radius" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" min="10" max="1000" value="100" required>
-            <p class="text-xs text-gray-500 mt-1">Jarak maksimal dari lokasi sekolah untuk absensi valid</p>
-          </div>
-
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              <i class="fas fa-tag mr-1"></i>
-              Nama Lokasi
-            </label>
-            <input type="text" name="location_name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Contoh: Sekolah Dasar XYZ, Jakarta">
-            <p class="text-xs text-gray-500 mt-1">Opsional: Berikan nama deskriptif untuk lokasi</p>
-          </div>
-
-          <!-- Map Container -->
-          <div id="mapContainer" class="mb-6 hidden">
-            <div class="mb-4 flex items-center justify-between">
               <div>
-                <h5 class="font-semibold text-gray-900 flex items-center">
+                <h3 id="tenantLocationModalTitle" class="text-xl font-semibold text-gray-900">Konfigurasi Lokasi Sekolah</h3>
+                <p class="text-sm text-gray-600 mt-1">Atur koordinat GPS untuk validasi absensi</p>
+              </div>
+            </div>
+            <button onclick="hideTenantLocationModal()" class="text-gray-400 hover:text-gray-600">
+              <i class="fas fa-times text-2xl"></i>
+            </button>
+          </div>
+
+          <form id="tenantLocationForm">
+            <input type="hidden" id="tenantLocationId">
+
+            <!-- Tenant Selection -->
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                <i class="fas fa-school mr-1"></i>
+                Pilih Sekolah
+              </label>
+              <select id="tenantLocationTenantId" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                <option value="">Pilih Sekolah</option>
+              </select>
+            </div>
+
+            <!-- Location Name -->
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                <i class="fas fa-tag mr-1"></i>
+                Nama Lokasi
+              </label>
+              <input type="text" id="tenantLocationName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Contoh: Kampus Pusat SDIT Wahdah Islamiyah" required>
+            </div>
+
+            <!-- Location Input Methods -->
+            <div class="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <!-- Auto Detect Section -->
+              <div class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="font-medium text-blue-900 flex items-center">
+                    <i class="fas fa-crosshairs mr-2"></i>
+                    GPS Otomatis
+                  </h4>
+                </div>
+                <p class="text-sm text-blue-700 mb-3">
+                  <i class="fas fa-info-circle mr-1"></i>
+                  Klik tombol di bawah untuk mendapatkan koordinat GPS saat ini
+                </p>
+                <button type="button" id="tenantDetectLocationBtn" class="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
+                  <i class="fas fa-crosshairs mr-2"></i>
+                  Deteksi Lokasi
+                </button>
+                <div id="tenantLocationStatus" class="text-xs text-blue-600 mt-2">
+                  Status: Menunggu deteksi...
+                </div>
+              </div>
+
+              <!-- Google Maps URL Section -->
+              <div class="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="font-medium text-green-900 flex items-center">
+                    <i class="fab fa-google mr-2"></i>
+                    Dari Google Maps
+                  </h4>
+                </div>
+                <p class="text-sm text-green-700 mb-3">
+                  <i class="fas fa-link mr-1"></i>
+                  Paste URL Google Maps atau koordinat langsung
+                </p>
+                <textarea id="tenantGoogleMapsUrl" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm" placeholder="https://maps.app.goo.gl/... atau -2.464250432324962, 120.86496689263612"></textarea>
+                <button type="button" id="parseTenantGoogleMapsUrl" class="w-full mt-2 inline-flex items-center justify-center px-3 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
+                  <i class="fas fa-search mr-2"></i>
+                  Parse Koordinat
+                </button>
+              </div>
+
+              <!-- Manual Input Section -->
+              <div class="p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-lg border border-purple-200">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="font-medium text-purple-900 flex items-center">
+                    <i class="fas fa-edit mr-2"></i>
+                    Input Manual
+                  </h4>
+                </div>
+                <p class="text-sm text-purple-700 mb-3">
+                  <i class="fas fa-keyboard mr-1"></i>
+                  Masukkan koordinat secara manual
+                </p>
+                <div class="space-y-2">
+                  <input type="text" id="tenantManualLat" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm" placeholder="Latitude: -2.464250432324962">
+                  <input type="text" id="tenantManualLng" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm" placeholder="Longitude: 120.86496689263612">
+                </div>
+                <button type="button" id="applyTenantManualBtn" class="w-full mt-2 inline-flex items-center justify-center px-3 py-2 bg-purple-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-purple-700 focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200">
+                  <i class="fas fa-check mr-2"></i>
+                  Terapkan
+                </button>
+              </div>
+            </div>
+
+            <!-- Coordinate Display -->
+            <div class="mb-6 p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg border border-gray-200">
+              <div class="flex items-center justify-between mb-3">
+                <h4 class="font-medium text-gray-900 flex items-center">
+                  <i class="fas fa-map-pin mr-2 text-blue-600"></i>
+                  Koordinat Lokasi
+                </h4>
+                <button type="button" id="copyTenantCoordsBtn" class="inline-flex items-center px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors" title="Salin koordinat">
+                  <i class="fas fa-copy mr-1"></i>
+                  Copy
+                </button>
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
+                  <input type="number" step="0.000001" id="tenantLocationLat" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white" placeholder="-6.2088" readonly>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
+                  <input type="number" step="0.000001" id="tenantLocationLng" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white" placeholder="106.8456" readonly>
+                </div>
+              </div>
+              <div class="mt-3 p-3 bg-white border border-gray-300 rounded-md">
+                <div class="text-sm font-mono text-gray-900" id="tenantCoordinateDisplay">
+                  <span class="text-gray-500">Belum ada koordinat dipilih</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Interactive Map -->
+            <div class="mb-6">
+              <div class="flex items-center justify-between mb-3">
+                <label class="block text-sm font-medium text-gray-700 flex items-center">
                   <i class="fas fa-map-marked-alt mr-2 text-green-600"></i>
-                  Peta Lokasi Interaktif
-                </h5>
-                <p class="text-sm text-gray-600 mt-1">Klik pada peta untuk memilih koordinat</p>
-              </div>
-              <div class="flex space-x-2">
-                <button type="button" onclick="centerMapOnCurrent()" class="inline-flex items-center px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
-                  <i class="fas fa-crosshairs mr-1"></i>
-                  Center
-                </button>
-                <button type="button" class="inline-flex items-center px-3 py-2 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors">
-                  <i class="fas fa-trash mr-1"></i>
-                  Clear
-                </button>
-              </div>
-            </div>
-            <div id="locationMap" style="height: 320px; border-radius: 0.75rem; border: 2px solid #e5e7eb; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);"></div>
-            <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div class="flex items-start">
-                <i class="fas fa-info-circle text-yellow-600 mt-0.5 mr-2"></i>
-                <div class="text-sm text-yellow-800">
-                  <strong>Tips:</strong> Klik di mana saja pada peta untuk menempatkan marker. Marker merah dapat digeser untuk penyesuaian presisi.
+                  Peta Interaktif
+                </label>
+                <div class="flex space-x-2">
+                  <button type="button" id="tenantCenterMapBtn" class="inline-flex items-center px-3 py-1.5 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors" title="Center pada koordinat">
+                    <i class="fas fa-crosshairs mr-1"></i>
+                    Center
+                  </button>
+                  <button type="button" id="tenantClearMarkerBtn" class="inline-flex items-center px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors" title="Hapus marker">
+                    <i class="fas fa-trash mr-1"></i>
+                    Clear
+                  </button>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <!-- Coordinate Display -->
-          <div class="mb-6 p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg border border-gray-200">
-            <div class="flex items-center justify-between mb-3">
-              <h5 class="font-semibold text-gray-900 flex items-center">
-                <i class="fas fa-map-pin mr-2 text-blue-600"></i>
-                Koordinat Lokasi
-              </h5>
-              <button type="button" onclick="copyCoordinates()" class="inline-flex items-center px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors" title="Salin koordinat">
-                <i class="fas fa-copy mr-1"></i>
-                Copy
-              </button>
-            </div>
-            <div id="coordinatePreview" class="text-sm font-mono bg-white px-4 py-3 rounded-md border border-gray-300 cursor-pointer hover:border-blue-400 transition-colors">
-              <span class="text-gray-500">Belum ada koordinat dipilih</span>
-            </div>
-            <div class="mt-2 flex items-center justify-between text-xs text-gray-600">
-              <span>Format: Latitude, Longitude (Decimal Degrees)</span>
-              <span id="coordinateAccuracy" class="text-green-600 hidden">
-                <i class="fas fa-check-circle mr-1"></i>
-                Akurat
-              </span>
-            </div>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="flex space-x-3 pt-4 border-t border-gray-200">
-            <button type="button" onclick="hideLocationModal()" class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200">
-              <i class="fas fa-times mr-2"></i>
-              Batal
-            </button>
-            <button type="submit" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-lg text-sm font-medium text-white hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105">
-              <i class="fas fa-save mr-2"></i>
-              Simpan Lokasi
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-
-            <div>
-              <h3 id="tenantLocationModalTitle" class="text-xl font-semibold text-gray-900">Konfigurasi Lokasi Sekolah</h3>
-              <p class="text-sm text-gray-600 mt-1">Atur koordinat GPS untuk validasi absensi</p>
-            </div>
-          </div>
-          <button onclick="hideTenantLocationModal()" class="text-gray-400 hover:text-gray-600">
-            <i class="fas fa-times text-2xl"></i>
-          </button>
-        </div>
-
-        <form id="tenantLocationForm">
-          <input type="hidden" id="locationId">
-
-          <!-- Tenant Selection -->
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              <i class="fas fa-school mr-1"></i>
-              Pilih Sekolah
-            </label>
-            <select id="locationTenantId" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-              <option value="">Pilih Sekolah</option>
-            </select>
-          </div>
-
-          <!-- Location Name -->
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              <i class="fas fa-tag mr-1"></i>
-              Nama Lokasi
-            </label>
-            <input type="text" id="locationName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Contoh: Kampus Pusat SDIT Wahdah Islamiyah" required>
-          </div>
-
-          <!-- Location Input Methods -->
-          <div class="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <!-- Auto Detect Section -->
-            <div class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-              <div class="flex items-center justify-between mb-3">
-                <h4 class="font-medium text-blue-900 flex items-center">
-                  <i class="fas fa-crosshairs mr-2"></i>
-                  GPS Otomatis
-                </h4>
+              <div class="bg-gray-100 rounded-lg border-2 border-dashed border-gray-300">
+                <div id="tenantLocationMap" class="w-full h-64 rounded-lg">
+                  <div class="flex items-center justify-center h-full text-gray-500">
+                    <div class="text-center">
+                      <i class="fas fa-map-marked-alt text-4xl mb-2"></i>
+                      <p>Klik pada peta untuk memilih lokasi</p>
+                      <p class="text-sm mt-1">Atau gunakan metode input di atas</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p class="text-sm text-blue-700 mb-3">
-                <i class="fas fa-info-circle mr-1"></i>
-                Klik tombol di bawah untuk mendapatkan koordinat GPS saat ini
-              </p>
-              <button type="button" id="detectLocationBtn" class="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
-                <i class="fas fa-crosshairs mr-2"></i>
-                Deteksi Lokasi
-              </button>
-              <div id="locationStatus" class="text-xs text-blue-600 mt-2">
-                Status: Menunggu deteksi...
-              </div>
-            </div>
-
-            <!-- Google Maps URL Section -->
-            <div class="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-              <div class="flex items-center justify-between mb-3">
-                <h4 class="font-medium text-green-900 flex items-center">
-                  <i class="fab fa-google mr-2"></i>
-                  Dari Google Maps
-                </h4>
-              </div>
-              <p class="text-sm text-green-700 mb-3">
-                <i class="fas fa-link mr-1"></i>
-                Paste URL Google Maps atau koordinat langsung
-              </p>
-              <textarea id="googleMapsUrl" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm" placeholder="https://maps.app.goo.gl/... atau -2.464250432324962, 120.86496689263612"></textarea>
-              <button type="button" id="parseUrlBtn" class="w-full mt-2 inline-flex items-center justify-center px-3 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
-                <i class="fas fa-search mr-2"></i>
-                Parse Koordinat
-              </button>
-            </div>
-
-            <!-- Manual Input Section -->
-            <div class="p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-lg border border-purple-200">
-              <div class="flex items-center justify-between mb-3">
-                <h4 class="font-medium text-purple-900 flex items-center">
-                  <i class="fas fa-edit mr-2"></i>
-                  Input Manual
-                </h4>
-              </div>
-              <p class="text-sm text-purple-700 mb-3">
-                <i class="fas fa-keyboard mr-1"></i>
-                Masukkan koordinat secara manual
-              </p>
-              <div class="space-y-2">
-                <input type="text" id="manualLat" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm" placeholder="Latitude: -2.464250432324962">
-                <input type="text" id="manualLng" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm" placeholder="Longitude: 120.86496689263612">
-              </div>
-              <button type="button" id="applyManualBtn" class="w-full mt-2 inline-flex items-center justify-center px-3 py-2 bg-purple-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-purple-700 focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200">
-                <i class="fas fa-check mr-2"></i>
-                Terapkan
-              </button>
-            </div>
-          </div>
-
-          <!-- Coordinate Display -->
-          <div class="mb-6 p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg border border-gray-200">
-            <div class="flex items-center justify-between mb-3">
-              <h4 class="font-medium text-gray-900 flex items-center">
-                <i class="fas fa-map-pin mr-2 text-blue-600"></i>
-                Koordinat Lokasi
-              </h4>
-              <button type="button" id="copyCoordsBtn" class="inline-flex items-center px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors" title="Salin koordinat">
-                <i class="fas fa-copy mr-1"></i>
-                Copy
-              </button>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                <input type="number" step="0.000001" id="locationLat" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white" placeholder="-6.2088" readonly>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                <input type="number" step="0.000001" id="locationLng" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white" placeholder="106.8456" readonly>
-              </div>
-            </div>
-            <div class="mt-3 p-3 bg-white border border-gray-300 rounded-md">
-              <div class="text-sm font-mono text-gray-900" id="coordinateDisplay">
-                <span class="text-gray-500">Belum ada koordinat dipilih</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Interactive Map -->
-          <div class="mb-6">
-            <div class="flex items-center justify-between mb-3">
-              <label class="block text-sm font-medium text-gray-700 flex items-center">
-                <i class="fas fa-map-marked-alt mr-2 text-green-600"></i>
-                Peta Interaktif
-              </label>
-              <div class="flex space-x-2">
-                <button type="button" id="centerMapBtn" class="inline-flex items-center px-3 py-1.5 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors" title="Center pada koordinat">
-                  <i class="fas fa-crosshairs mr-1"></i>
-                  Center
-                </button>
-                <button type="button" id="clearMarkerBtn" class="inline-flex items-center px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors" title="Hapus marker">
-                  <i class="fas fa-trash mr-1"></i>
-                  Clear
-                </button>
-              </div>
-            </div>
-            <div class="bg-gray-100 rounded-lg border-2 border-dashed border-gray-300">
-              <div id="locationMiniMap" class="w-full h-64 rounded-lg">
-                <div class="flex items-center justify-center h-full text-gray-500">
-                  <div class="text-center">
-                    <i class="fas fa-map-marked-alt text-4xl mb-2"></i>
-                    <p>Klik pada peta untuk memilih lokasi</p>
-                    <p class="text-sm mt-1">Atau gunakan metode input di atas</p>
+              <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div class="flex items-start">
+                  <i class="fas fa-lightbulb text-yellow-600 mt-0.5 mr-2"></i>
+                  <div class="text-sm text-yellow-800">
+                    <strong>Tips:</strong> Klik di mana saja pada peta untuk menempatkan marker. Marker merah dapat digeser untuk penyesuaian presisi.
                   </div>
                 </div>
               </div>
             </div>
-            <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div class="flex items-start">
-                <i class="fas fa-lightbulb text-yellow-600 mt-0.5 mr-2"></i>
-                <div class="text-sm text-yellow-800">
-                  <strong>Tips:</strong> Klik di mana saja pada peta untuk menempatkan marker. Marker merah dapat digeser untuk penyesuaian presisi.
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <!-- Radius Setting -->
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              <i class="fas fa-ruler-combined mr-1"></i>
-              Radius Lokasi (meter)
-            </label>
-            <input type="number" id="locationRadius" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="100" value="100" min="10" max="1000">
-            <p class="text-xs text-gray-500 mt-1">Jarak maksimal dari lokasi sekolah untuk absensi valid (10-1000 meter)</p>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="flex space-x-3 pt-4 border-t border-gray-200">
-            <button type="button" onclick="hideTenantLocationModal()" class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200">
-              <i class="fas fa-times mr-2"></i>
-              Batal
-            </button>
-            <button type="submit" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-lg text-sm font-medium text-white hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105">
-              <i class="fas fa-save mr-2"></i>
-              Simpan Lokasi
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- Add Device Modal -->
-  <div id="addDeviceModal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 justify-center items-center hidden">
-    <div class="bg-white rounded-lg max-w-md w-full mx-4">
-      <div class="p-6">
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center">
-            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-              <i class="fas fa-tablet-alt text-green-600"></i>
-            </div>
-            <h3 class="text-lg font-semibold text-gray-900">Tambah Scanner Device</h3>
-          </div>
-          <button onclick="hideAddDeviceModal()" class="text-gray-400 hover:text-gray-600">
-            <i class="fas fa-times text-xl"></i>
-          </button>
-        </div>
-
-        <form id="addDeviceForm">
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Tenant ID</label>
-            <select id="deviceTenantId" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-              <option value="">Pilih Sekolah</option>
-            </select>
-          </div>
-
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Device ID</label>
-            <input type="text" id="deviceId" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Contoh: SDIT-TABLET-01" required>
-            <p class="text-xs text-gray-500 mt-1">ID unik untuk device ini</p>
-          </div>
-
-          <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Device</label>
-            <input type="text" id="deviceName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Contoh: Tablet Security SDIT">
-          </div>
-
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Sekolah</label>
-            <input type="text" id="deviceSchoolName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Contoh: SDIT Wahdah Islamiyah" required>
-          </div>
-
-          <div class="flex space-x-3">
-            <button type="button" onclick="hideAddDeviceModal()" class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-              <i class="fas fa-times mr-2"></i>
-              Batal
-            </button>
-            <button type="submit" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-green-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-green-700">
-              <i class="fas fa-plus mr-2"></i>
-              Tambah Device
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-
-            <div>
-              <h3 id="tenantLocationModalTitle" class="text-xl font-semibold text-gray-900">Konfigurasi Lokasi Sekolah</h3>
-              <p class="text-sm text-gray-600 mt-1">Atur koordinat GPS untuk validasi absensi</p>
-            </div>
-          </div>
-          <button onclick="hideTenantLocationModal()" class="text-gray-400 hover:text-gray-600">
-            <i class="fas fa-times text-2xl"></i>
-          </button>
-        </div>
-
-        <form id="tenantLocationForm">
-          <input type="hidden" id="tenantLocationId">
-
-          <!-- Tenant Selection -->
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              <i class="fas fa-school mr-1"></i>
-              Pilih Sekolah
-            </label>
-            <select id="tenantLocationTenantId" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
-              <option value="">Pilih Sekolah</option>
-            </select>
-          </div>
-
-          <!-- Location Name -->
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              <i class="fas fa-tag mr-1"></i>
-              Nama Lokasi
-            </label>
-            <input type="text" id="tenantLocationName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Contoh: Kampus Pusat SDIT Wahdah Islamiyah" required>
-          </div>
-
-          <!-- Location Input Methods -->
-          <div class="mb-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <!-- Auto Detect Section -->
-            <div class="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-              <div class="flex items-center justify-between mb-3">
-                <h4 class="font-medium text-blue-900 flex items-center">
-                  <i class="fas fa-crosshairs mr-2"></i>
-                  GPS Otomatis
-                </h4>
-              </div>
-              <p class="text-sm text-blue-700 mb-3">
-                <i class="fas fa-info-circle mr-1"></i>
-                Klik tombol di bawah untuk mendapatkan koordinat GPS saat ini
-              </p>
-              <button type="button" id="tenantDetectLocationBtn" class="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200">
-                <i class="fas fa-crosshairs mr-2"></i>
-                Deteksi Lokasi
-              </button>
-              <div id="tenantLocationStatus" class="text-xs text-blue-600 mt-2">
-                Status: Menunggu deteksi...
-              </div>
-            </div>
-
-            <!-- Google Maps URL Section -->
-            <div class="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-              <div class="flex items-center justify-between mb-3">
-                <h4 class="font-medium text-green-900 flex items-center">
-                  <i class="fab fa-google mr-2"></i>
-                  Dari Google Maps
-                </h4>
-              </div>
-              <p class="text-sm text-green-700 mb-3">
-                <i class="fas fa-link mr-1"></i>
-                Paste URL Google Maps atau koordinat langsung
-              </p>
-              <textarea id="tenantGoogleMapsUrl" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm" placeholder="https://maps.app.goo.gl/... atau -2.464250432324962, 120.86496689263612"></textarea>
-              <button type="button" onclick="parseTenantGoogleMapsUrl()" class="w-full mt-2 inline-flex items-center justify-center px-3 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
-                <i class="fas fa-search mr-2"></i>
-                Parse Koordinat
-              </button>
-            </div>
-
-            <!-- Manual Input Section -->
-            <div class="p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-lg border border-purple-200">
-              <div class="flex items-center justify-between mb-3">
-                <h4 class="font-medium text-purple-900 flex items-center">
-                  <i class="fas fa-edit mr-2"></i>
-                  Input Manual
-                </h4>
-              </div>
-              <p class="text-sm text-purple-700 mb-3">
-                <i class="fas fa-keyboard mr-1"></i>
-                Masukkan koordinat secara manual
-              </p>
-              <div class="space-y-2">
-                <input type="text" id="tenantManualLat" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm" placeholder="Latitude: -2.464250432324962">
-                <input type="text" id="tenantManualLng" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm" placeholder="Longitude: 120.86496689263612">
-              </div>
-              <button type="button" onclick="applyTenantManualCoordinates()" class="w-full mt-2 inline-flex items-center justify-center px-3 py-2 bg-purple-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-purple-700 focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200">
-                <i class="fas fa-check mr-2"></i>
-                Terapkan
-              </button>
-            </div>
-          </div>
-
-          <!-- Coordinate Display -->
-          <div class="mb-6 p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-lg border border-gray-200">
-            <div class="flex items-center justify-between mb-3">
-              <h4 class="font-medium text-gray-900 flex items-center">
-                <i class="fas fa-map-pin mr-2 text-blue-600"></i>
-                Koordinat Lokasi
-              </h4>
-              <button type="button" onclick="copyTenantCurrentCoordinates()" class="inline-flex items-center px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors" title="Salin koordinat">
-                <i class="fas fa-copy mr-1"></i>
-                Copy
-              </button>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                <input type="number" step="0.000001" id="tenantLocationLat" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white" placeholder="-6.2088" readonly>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                <input type="number" step="0.000001" id="tenantLocationLng" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white" placeholder="106.8456" readonly>
-              </div>
-            </div>
-            <div class="mt-3 p-3 bg-white border border-gray-300 rounded-md">
-              <div class="text-sm font-mono text-gray-900" id="tenantCoordinateDisplay">
-                <div class="font-mono text-sm">
-                  <span class="font-semibold">📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
-                </div>
-                <div class="text-xs text-gray-600 mt-1">
-                  Klik peta untuk mengubah • Drag marker untuk penyesuaian
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Interactive Map -->
-          <div class="mb-6">
-            <div class="flex items-center justify-between mb-3">
-              <label class="block text-sm font-medium text-gray-700 flex items-center">
-                <i class="fas fa-map-marked-alt mr-2 text-green-600"></i>
-                Peta Interaktif
+            <!-- Radius Setting -->
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                <i class="fas fa-ruler-combined mr-1"></i>
+                Radius Lokasi (meter)
               </label>
-              <div class="flex space-x-2">
-                <button type="button" onclick="centerTenantMapOnCoordinates()" class="inline-flex items-center px-3 py-1.5 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors" title="Center pada koordinat">
-                  <i class="fas fa-crosshairs mr-1"></i>
-                  Center
-                </button>
-                <button type="button" onclick="clearTenantMapMarker()" class="inline-flex items-center px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors" title="Hapus marker">
-                  <i class="fas fa-trash mr-1"></i>
-                  Clear
-                </button>
-              </div>
+              <input type="number" id="tenantLocationRadius" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="100" value="100" min="10" max="1000">
+              <p class="text-xs text-gray-500 mt-1">Jarak maksimal dari lokasi sekolah untuk absensi valid (10-1000 meter)</p>
             </div>
-            <div class="bg-gray-100 rounded-lg border-2 border-dashed border-gray-300">
-              <div id="tenantLocationMap" class="w-full h-64 rounded-lg">
-                <div class="flex items-center justify-center h-full text-gray-500">
-                  <div class="text-center">
-                    <i class="fas fa-map-marked-alt text-4xl mb-2"></i>
-                    <p>Klik pada peta untuk memilih lokasi</p>
-                    <p class="text-sm mt-1">Atau gunakan metode input di atas</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div class="flex items-start">
-                <i class="fas fa-lightbulb text-yellow-600 mt-0.5 mr-2"></i>
-                <div class="text-sm text-yellow-800">
-                  <strong>Tips:</strong> Klik di mana saja pada peta untuk menempatkan marker. Marker merah dapat digeser untuk penyesuaian presisi.
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <!-- Radius Setting -->
-          <div class="mb-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              <i class="fas fa-ruler-combined mr-1"></i>
-              Radius Lokasi (meter)
-            </label>
-            <input type="number" id="tenantLocationRadius" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="100" value="100" min="10" max="1000">
-            <p class="text-xs text-gray-500 mt-1">Jarak maksimal dari lokasi sekolah untuk absensi valid (10-1000 meter)</p>
-          </div>
-
-          <!-- Action Buttons -->
-          <div class="flex space-x-3 pt-4 border-t border-gray-200">
-            <button type="button" onclick="hideTenantLocationModal()" class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200">
-              <i class="fas fa-times mr-2"></i>
-              Batal
-            </button>
-            <button type="submit" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-lg text-sm font-medium text-white hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105">
-              <i class="fas fa-save mr-2"></i>
-              Simpan Lokasi
-            </button>
-          </div>
-        </form>
+            <!-- Action Buttons -->
+            <div class="flex space-x-3 pt-4 border-t border-gray-200">
+              <button type="button" onclick="hideTenantLocationModal()" class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200">
+                <i class="fas fa-times mr-2"></i>
+                Batal
+              </button>
+              <button type="submit" class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 border border-transparent rounded-lg text-sm font-medium text-white hover:from-blue-700 hover:to-blue-800 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105">
+                <i class="fas fa-save mr-2"></i>
+                Simpan Lokasi
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
-  </div>
 
   <script type="module">
     // Global variables for access across the page
@@ -1776,13 +1336,21 @@
       if (el) el.textContent = val;
     };
 
+    // Escape HTML to prevent XSS
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
+    }
+
     // Make functions globally available for onclick attributes
     window.showAddTeacherModal = showAddTeacherModal;
     window.showAddRuleModal = showAddRuleModal;
     window.refreshTenantLocations = refreshTenantLocations;
     window.hideTeacherModal = hideTeacherModal;
     window.hideRuleModal = hideRuleModal;
-    window.hideLocationModal = hideLocationModal;
+    window.hideTenantLocationModal = hideTenantLocationModal;
     window.editTeacher = editTeacher;
     window.deleteTeacher = deleteTeacher;
     window.toggleSelectAll = toggleSelectAll;
@@ -1795,6 +1363,7 @@
     window.showSettingsTab = showSettingsTab;
     window.autoDetectLocation = autoDetectLocation;
     window.editTenantLocation = editTenantLocation;
+    window.showTenantLocationModal = showTenantLocationModal;
 
     window.toggleMap = toggleMap;
     window.centerMapOnCurrent = centerMapOnCurrent;
@@ -1868,18 +1437,26 @@
 
           const tbody = document.getElementById('teachersTable');
           console.log('Teachers tbody found:', !!tbody);
-          tbody.innerHTML = items.map(t => `
+          tbody.innerHTML = items.map(t => {
+            const nama = escapeHtml(t.nama);
+            const nik = escapeHtml(t.nik);
+            const nip = escapeHtml(t.nip);
+            const statusKepegawaian = escapeHtml(t.status_kepegawaian);
+            const sekolah = t.assignments && t.assignments.length > 0
+              ? t.assignments.map(a => escapeHtml(a.nama_sekolah || a.tenant_id)).join(', ')
+              : 'Belum ditugaskan';
+            return `
             <tr class="hover:bg-gray-50">
               <td class="px-6 py-4">
                 <input type="checkbox" class="teacher-checkbox" value="${t.id}" onchange="updateSelectAll()">
               </td>
-              <td class="px-6 py-4 text-sm text-gray-900">${t.nama || '-'}</td>
-              <td class="px-6 py-4 text-sm text-gray-500">${t.nik || '-'}</td>
-              <td class="px-6 py-4 text-sm text-gray-500">${t.nip || '-'}</td>
-              <td class="px-6 py-4 text-sm text-gray-500">${t.status_kepegawaian || '-'}</td>
+              <td class="px-6 py-4 text-sm text-gray-900">${nama || '-'}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">${nik || '-'}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">${nip || '-'}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">${statusKepegawaian || '-'}</td>
                <td class="px-6 py-4 text-sm text-gray-500">
-                 <div class="max-w-xs truncate" title="${t.assignments && t.assignments.length > 0 ? t.assignments.map(a => a.nama_sekolah || a.tenant_id).join(', ') : 'Belum ditugaskan'}">
-                   ${t.assignments && t.assignments.length > 0 ? t.assignments.map(a => a.nama_sekolah || a.tenant_id).join(', ') : 'Belum ditugaskan'}
+                 <div class="max-w-xs truncate" title="${sekolah}">
+                   ${sekolah}
                  </div>
                </td>
               <td class="px-6 py-4 text-sm">
@@ -1899,7 +1476,7 @@
                 </button>
               </td>
             </tr>
-          `).join('');
+          `}).join('');
 
           // Update pagination controls
           updatePaginationControls(res.pagination);
@@ -1908,6 +1485,7 @@
         }
       } catch (error) {
         console.error('Teachers fetch error:', error);
+        showToast('Gagal memuat data guru', 'error');
       }
     }
 
@@ -1994,7 +1572,7 @@
               <td class="px-6 py-4 text-sm text-gray-900">${a.nama || '-'}</td>
               <td class="px-6 py-4 text-sm text-gray-500">${a.nip || '-'}</td>
               <td class="px-6 py-4 text-sm text-gray-500">${a.jenis}</td>
-              <td class="px-6 py-4 text-sm text-gray-500">${new Date(a.waktu_scan).toLocaleString('id-ID')}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">${new Date(a.waktu_scan).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
               <td class="px-6 py-4 text-sm">
                 <span class="px-2 py-1 rounded-full text-xs ${a.status === 'tepat_waktu' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
                   ${a.status === 'tepat_waktu' ? 'Tepat Waktu' : 'Terlambat'}
@@ -2124,7 +1702,7 @@
       document.querySelectorAll('[data-action="auto-detect"]').forEach(button => {
         button.addEventListener('click', function() {
           const tenantId = this.getAttribute('data-tenant-id');
-          autoDetectLocation(tenantId);
+          autoDetectLocation(tenantId, event);
         });
       });
 
@@ -2222,19 +1800,34 @@
       document.getElementById('ruleModal').classList.remove('show');
     }
 
-    function showLocationModal() {
-      document.getElementById('locationModal').classList.add('show');
+    function showTenantLocationModal() {
+      document.getElementById('tenantLocationModal').classList.remove('hidden');
+      document.getElementById('tenantLocationModal').classList.add('show');
+
+      // Initialize tenant map on modal show
+      setTimeout(() => {
+        initializeTenantMap();
+      }, 100);
     }
 
-    function hideLocationModal() {
-      const modal = document.getElementById('locationModal');
+    function hideTenantLocationModal() {
+      const modal = document.getElementById('tenantLocationModal');
       modal.classList.remove('show');
+      modal.classList.add('hidden');
+      document.getElementById('tenantLocationForm').reset();
 
       // Re-enable tenant dropdown when modal is closed
-      const tenantSelect = document.getElementById('locationTenantSelect');
+      const tenantSelect = document.getElementById('tenantLocationTenantId');
       if (tenantSelect) {
         tenantSelect.disabled = false;
       }
+
+      // Cleanup map when modal closed
+      if (tenantMiniMap) {
+        tenantMiniMap.remove();
+        tenantMiniMap = null;
+      }
+      tenantCurrentMarker = null;
     }
 
     async function editTeacher(id) {
@@ -2257,6 +1850,7 @@
         }
       } catch (error) {
         console.error('Error fetching teacher detail:', error);
+        showToast('Gagal memuat data guru', 'error');
       }
     }
 
@@ -2325,9 +1919,9 @@
         if (res.success) {
           const tenant = res.data.find(t => t.tenant_id === tenantId);
           if (tenant) {
-            document.getElementById('locationModalTitle').textContent = 'Edit Lokasi Sekolah';
-            const form = document.getElementById('locationForm');
-            const tenantSelect = document.getElementById('locationTenantSelect');
+            document.getElementById('tenantLocationModalTitle').textContent = 'Edit Lokasi Sekolah';
+            const form = document.getElementById('tenantLocationForm');
+            const tenantSelect = document.getElementById('tenantLocationTenantId');
 
             // Load tenant options first
             tenantSelect.innerHTML = '<option value="">Pilih Sekolah</option>';
@@ -2342,28 +1936,42 @@
             tenantSelect.value = tenant.tenant_id;
             tenantSelect.disabled = true;
 
+            // Set tenant ID
+            document.getElementById('tenantLocationId').value = tenant.id || '';
+
             // Fill form data
-            form.latitude.value = tenant.latitude || '';
-            form.longitude.value = tenant.longitude || '';
-            form.location_radius.value = tenant.location_radius || 100;
-            form.location_name.value = tenant.location_name || '';
+            document.getElementById('latitudeInput').value = tenant.latitude || '';
+            document.getElementById('longitudeInput').value = tenant.longitude || '';
 
-            // Update coordinate preview
-            updateCoordinatePreview();
-
-            // Reset map state
-            const mapContainer = document.getElementById('mapContainer');
-            if (!mapContainer.classList.contains('hidden')) {
-              toggleMap(); // Close map if open
+            // Update coordinate display
+            const coordDisplay = document.getElementById('tenantCoordinateDisplay');
+            if (tenant.latitude && tenant.longitude) {
+              coordDisplay.innerHTML = `
+                <div class="font-mono text-sm">
+                  <span class="font-semibold">📍 ${parseFloat(tenant.latitude).toFixed(6)}, ${parseFloat(tenant.longitude).toFixed(6)}</span>
+                </div>
+                <div class="text-xs text-gray-600 mt-1">
+                  Klik peta untuk mengubah • Drag marker untuk penyesuaian
+                </div>
+              `;
             }
 
-            // For now, still use locationModal for editing tenant data
-            // TODO: Create separate modal for editing tenant locations
-            showLocationModal();
+            document.getElementById('tenantLocationRadius').value = tenant.location_radius || 100;
+            document.getElementById('tenantLocationName').value = tenant.location_name || '';
+
+            // Reset map state
+            hideTenantLocationModal();
+
+            // For now, still use tenantLocationModal for editing tenant data
+            // Show modal after short delay
+            setTimeout(() => {
+              showTenantLocationModal();
+            }, 100);
           }
         }
       } catch (error) {
         console.error('Error fetching tenant detail:', error);
+        showToast('Gagal memuat data lokasi: ' + error.message, 'error');
       }
     }
 
@@ -2374,12 +1982,16 @@
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${authToken}` }
           });
-        const res = await response.json();
-        if (res.success) {
-          fetchTeachers(currentPage);
-        }
+          const res = await response.json();
+          if (res.success) {
+            fetchTeachers(currentPage);
+            showToast('Guru berhasil dihapus', 'success');
+          } else {
+            showToast('Gagal menghapus guru: ' + (res.message || ''), 'error');
+          }
         } catch (error) {
           console.error('Delete teacher error:', error);
+          showToast('Terjadi kesalahan saat menghapus guru', 'error');
         }
       }
     }
@@ -2394,9 +2006,13 @@
           const res = await response.json();
           if (res.success) {
             fetchRules();
+            showToast('Aturan berhasil dihapus', 'success');
+          } else {
+            showToast('Gagal menghapus aturan: ' + (res.message || ''), 'error');
           }
         } catch (error) {
           console.error('Delete rule error:', error);
+          showToast('Terjadi kesalahan saat menghapus aturan', 'error');
         }
       }
     }
@@ -2422,7 +2038,7 @@
     async function deleteSelectedTeachers() {
       const selectedIds = getSelectedTeacherIds();
       if (selectedIds.length === 0) {
-        alert('Pilih guru yang ingin dihapus');
+        showToast('Pilih guru yang ingin dihapus', 'warning');
         return;
       }
       if (!confirm(`Hapus ${selectedIds.length} guru terpilih?`)) return;
@@ -2438,14 +2054,14 @@
         fetchTeachers(currentPage);
       } catch (error) {
         console.error('Bulk delete error:', error);
-        alert('Terjadi kesalahan saat menghapus');
+        showToast('Terjadi kesalahan saat menghapus', 'error');
       }
     }
 
     async function createUsersForSelected() {
       const selectedIds = getSelectedTeacherIds();
       if (selectedIds.length === 0) {
-        alert('Pilih guru yang ingin dibuat user-nya');
+        showToast('Pilih guru yang ingin dibuat user-nya', 'warning');
         return;
       }
 
@@ -2468,15 +2084,15 @@
           }
         }
         if (successCount > 0) {
-          alert(`${successCount} user berhasil dibuat`);
+          showToast(`${successCount} user berhasil dibuat`, 'success');
         }
         if (errorMessages.length > 0) {
-          alert('Error:\n' + errorMessages.join('\n'));
+          showToast('Error: ' + errorMessages.join(', '), 'error');
         }
         fetchTeachers(currentPage);
       } catch (error) {
         console.error('Bulk create user error:', error);
-        alert('Terjadi kesalahan');
+        showToast('Terjadi kesalahan', 'error');
       }
     }
 
@@ -2490,14 +2106,14 @@
         });
         const res = await response.json();
         if (res.success) {
-          alert('User account berhasil dibuat');
+          showToast('User account berhasil dibuat', 'success');
           fetchTeachers(currentPage);
         } else {
-          alert('Error: ' + res.message);
+          showToast('Error: ' + res.message, 'error');
         }
       } catch (error) {
         console.error('Create user error:', error);
-        alert('Terjadi kesalahan');
+        showToast('Terjadi kesalahan', 'error');
       }
     }
 
@@ -2605,22 +2221,27 @@
     function showToast(message, type = 'info') {
       // Create toast element
       const toast = document.createElement('div');
-      toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+      toast.className = `fixed top-4 right-4 z-[9999] p-4 rounded-lg shadow-lg max-w-sm ${
         type === 'success' ? 'bg-green-500 text-white' :
         type === 'error' ? 'bg-red-500 text-white' :
+        type === 'warning' ? 'bg-yellow-500 text-white' :
         'bg-blue-500 text-white'
       }`;
 
+      const iconClass = type === 'success' ? 'fa-check-circle' :
+        type === 'error' ? 'fa-exclamation-circle' :
+        type === 'warning' ? 'fa-exclamation-triangle' :
+        'fa-info-circle';
+
       toast.innerHTML = `
         <div class="flex items-center">
-          <i class="fas ${
-            type === 'success' ? 'fa-check-circle' :
-            type === 'error' ? 'fa-exclamation-circle' :
-            'fa-info-circle'
-          } mr-2"></i>
-          <span>${message}</span>
+          <i class="fas ${iconClass} mr-2"></i>
+          <span class="toast-message"></span>
         </div>
       `;
+
+      // Use textContent to prevent XSS
+      toast.querySelector('.toast-message').textContent = message;
 
       document.body.appendChild(toast);
 
@@ -2662,17 +2283,19 @@
     }
 
     // Auto Detect Location Functions
-    async function autoDetectLocation(tenantId) {
+    async function autoDetectLocation(tenantId, event) {
       if (!navigator.geolocation) {
-        alert('Browser tidak mendukung geolokasi');
+        showToast('Browser tidak mendukung geolokasi', 'error');
         return;
       }
 
       // Show loading state
-      const button = event.target.closest('button');
-      const originalText = button.innerHTML;
-      button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Detecting...';
-      button.disabled = true;
+      const button = event ? event.target.closest('button') : null;
+      const originalText = button ? button.innerHTML : '';
+      if (button) {
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Detecting...';
+        button.disabled = true;
+      }
 
       try {
         const position = await new Promise((resolve, reject) => {
@@ -2697,13 +2320,13 @@
             latitude: latitude,
             longitude: longitude,
             location_radius: 100,
-            location_name: `Auto-detected at ${new Date().toLocaleString('id-ID')}`
+            location_name: `Auto-detected at ${new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
           })
         });
 
         if (response.ok) {
           fetchTenantLocations(); // Refresh the list
-          alert(`Lokasi berhasil dideteksi!\nLatitude: ${latitude}\nLongitude: ${longitude}`);
+          showToast(`Lokasi berhasil dideteksi!\nLat: ${latitude}, Lng: ${longitude}`, 'success');
         } else {
           throw new Error('Failed to update location');
         }
@@ -2711,15 +2334,17 @@
       } catch (error) {
         console.error('Location detection error:', error);
         if (error.code === 1) {
-          alert('Akses lokasi ditolak. Silakan izinkan akses lokasi di browser Anda.');
+          showToast('Akses lokasi ditolak. Silakan izinkan akses lokasi di browser Anda.', 'error');
         } else if (error.code === 2) {
-          alert('Lokasi tidak dapat dideteksi. Pastikan GPS aktif dan coba lagi.');
+          showToast('Lokasi tidak dapat dideteksi. Pastikan GPS aktif dan coba lagi.', 'error');
         } else {
-          alert('Error mendeteksi lokasi: ' + error.message);
+          showToast('Error mendeteksi lokasi: ' + error.message, 'error');
         }
       } finally {
-        button.innerHTML = originalText;
-        button.disabled = false;
+        if (button) {
+          button.innerHTML = originalText;
+          button.disabled = false;
+        }
       }
     }
 
@@ -2778,9 +2403,13 @@
         if (res.success) {
           hideTeacherModal();
           fetchTeachers(currentPage);
+          showToast('Guru berhasil disimpan', 'success');
+        } else {
+          showToast('Gagal menyimpan: ' + (res.message || 'Terjadi kesalahan'), 'error');
         }
       } catch (error) {
         console.error('Teacher form submit error:', error);
+        showToast('Terjadi kesalahan saat menyimpan', 'error');
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
@@ -2814,20 +2443,37 @@
         if (res.success) {
           hideRuleModal();
           fetchRules();
+          showToast('Aturan berhasil disimpan', 'success');
+        } else {
+          showToast('Gagal menyimpan: ' + (res.message || 'Terjadi kesalahan'), 'error');
         }
       } catch (error) {
         console.error('Rule form submit error:', error);
+        showToast('Terjadi kesalahan saat menyimpan aturan', 'error');
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
       }
     });
 
-    document.getElementById('locationForm').addEventListener('submit', async (e) => {
+    document.getElementById('tenantLocationForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const formData = new FormData(e.target);
-      const data = Object.fromEntries(formData);
-      const tenantId = data.tenant_id;
+
+      const tenantId = document.getElementById('tenantLocationTenantId').value;
+      const latitude = document.getElementById('latitudeInput').value;
+      const longitude = document.getElementById('longitudeInput').value;
+      const locationRadius = document.getElementById('tenantLocationRadius').value;
+      const locationName = document.getElementById('tenantLocationName').value;
+
+      if (!tenantId) {
+        showToast('Pilih sekolah terlebih dahulu', 'error');
+        return;
+      }
+
+      if (!latitude || !longitude) {
+        showToast('Pilih koordinat lokasi terlebih dahulu', 'error');
+        return;
+      }
 
       const submitBtn = e.target.querySelector('button[type="submit"]');
       const originalText = submitBtn.textContent;
@@ -2841,20 +2487,25 @@
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${authToken}`
           },
-          body: JSON.stringify(data)
+          body: JSON.stringify({
+            latitude: latitude,
+            longitude: longitude,
+            location_radius: locationRadius,
+            location_name: locationName
+          })
         });
 
         const res = await response.json();
         if (res.success) {
-          hideLocationModal();
+          hideTenantLocationModal();
           fetchTenantLocations();
-          alert('Lokasi berhasil disimpan!');
+          showToast('Lokasi berhasil disimpan!', 'success');
         } else {
-          alert('Error: ' + (res.message || 'Gagal menyimpan lokasi'));
+          showToast('Gagal menyimpan: ' + (res.message || 'Terjadi kesalahan'), 'error');
         }
       } catch (error) {
         console.error('Location form submit error:', error);
-        alert('Terjadi kesalahan saat menyimpan lokasi');
+        showToast('Terjadi kesalahan saat menyimpan lokasi', 'error');
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
@@ -2888,14 +2539,7 @@
           const setting = this.getAttribute('data-setting');
           showSettingsTab(setting);
         });
-      });
-
-      // Add coordinate preview listeners
-      document.getElementById('latitudeInput')?.addEventListener('input', updateCoordinatePreview);
-      document.getElementById('longitudeInput')?.addEventListener('input', updateCoordinatePreview);
-
-
-
+});
 
 
       // Add device modal button
@@ -2950,7 +2594,7 @@
         const message = document.getElementById('bulkMessage').value.trim();
 
         if (!tenantId || !message) {
-          alert('Pilih unit sekolah dan isi pesan!');
+          showToast('Pilih unit sekolah dan isi pesan!', 'warning');
           return;
         }
 
@@ -3001,7 +2645,7 @@
         const message = document.getElementById('singleMessage').value.trim();
 
         if (!teacherId || !message) {
-          alert('Pilih guru dan isi pesan!');
+          showToast('Pilih guru dan isi pesan!', 'warning');
           return;
         }
 
@@ -3215,6 +2859,10 @@
     let miniMap = null;
     let currentMarker = null;
     let currentLatLng = null;
+
+    // Tenant Location Map Variables
+    let tenantMiniMap = null;
+    let tenantCurrentMarker = null;
 
     // Update mini map with new coordinates
     function updateMiniMap(lat, lng) {
@@ -3457,11 +3105,11 @@
           },
           function(error) {
             console.log('Geolocation error:', error);
-            alert('Tidak dapat mendapatkan lokasi saat ini. Pastikan GPS aktif.');
+            showToast('Tidak dapat mendapatkan lokasi saat ini. Pastikan GPS aktif.', 'error');
           }
         );
       } else {
-        alert('Browser tidak mendukung geolokasi');
+        showToast('Browser tidak mendukung geolokasi', 'error');
       }
     }
 
@@ -3487,7 +3135,7 @@
           statusDiv.classList.remove('text-red-600');
         }, 3000);
       } else {
-        alert('Tidak ada marker yang bisa dihapus');
+        showToast('Tidak ada marker yang bisa dihapus', 'warning');
       }
     }
 
@@ -3520,37 +3168,14 @@
             }, 2000);
           }).catch(err => {
             console.error('Failed to copy:', err);
-            alert('Gagal menyalin koordinat. Coba lagi.');
+            showToast('Gagal menyalin koordinat. Coba lagi.', 'error');
           });
         }
       } else {
-        alert('Belum ada koordinat yang bisa disalin');
+        showToast('Belum ada koordinat yang bisa disalin', 'warning');
       }
     }
 
-    // Override the existing updateCoordinatePreview to work with our new system
-    window.updateCoordinatePreview = updateCoordinatePreview;
-
-
-
-
-
-    function hideTenantLocationModal() {
-      console.log('Hiding tenant location modal...');
-      const modal = document.getElementById('tenantLocationModal');
-      modal.classList.remove('show');
-      modal.classList.add('hidden');
-      document.getElementById('tenantLocationForm').reset();
-
-      // Clean up map
-      if (miniMap) {
-        miniMap.remove();
-        miniMap = null;
-      }
-      currentMarker = null;
-
-      console.log('Modal hidden');
-    }
 
     function hideAddDeviceModal() {
       const modal = document.getElementById('addDeviceModal');
@@ -3737,7 +3362,7 @@
                 <td class="px-4 py-3 text-sm text-gray-600">${log.school_name || log.tenant_id}</td>
                 <td class="px-4 py-3 text-sm text-gray-600">${log.device_name || log.device_id}</td>
                 <td class="px-4 py-3 text-sm text-gray-600">
-                  ${new Date(log.waktu_scan).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                  ${new Date(log.waktu_scan).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                 </td>
                 <td class="px-4 py-3">
                   <span class="px-2 py-1 text-xs font-semibold rounded-full ${
@@ -3842,6 +3467,287 @@
         showToast('Terjadi kesalahan saat mengubah pengaturan', 'error');
         // Revert the toggle on error
         fetchTenantLocations();
+      }
+    }
+
+    // Parse Google Maps URL or coordinates for tenant modal
+    function parseTenantGoogleMapsUrl() {
+      const input = document.getElementById('tenantGoogleMapsUrl').value.trim();
+      if (!input) {
+        showToast('Masukkan URL Google Maps atau koordinat terlebih dahulu', 'warning');
+        return;
+      }
+
+      // Try to parse as URL
+      try {
+        const url = new URL(input);
+        const coords = url.pathname.split('/').filter(Boolean);
+        if (coords.length >= 2) {
+          const lat = parseFloat(coords[0].replace(',', '.'));
+          const lng = parseFloat(coords[1].replace(',', '.'));
+          if (!isNaN(lat) && !isNaN(lng)) {
+            document.getElementById('tenantLocationLat').value = lat.toFixed(6);
+            document.getElementById('tenantLocationLng').value = lng.toFixed(6);
+            document.getElementById('tenantCoordinateDisplay').innerHTML = `
+              <div class="font-mono text-sm">
+                <span class="font-semibold">📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
+              </div>
+              <div class="text-xs text-gray-600 mt-1">
+                Klik peta untuk mengubah • Drag marker untuk penyesuaian
+              </div>
+            `;
+
+            // Update map if initialized
+            if (tenantMiniMap) {
+              tenantMiniMap.setView([lat, lng], 15);
+              if (tenantCurrentMarker) {
+                tenantCurrentMarker.setLatLng([lat, lng]);
+              } else {
+                tenantCurrentMarker = L.marker([lat, lng], { draggable: true }).addTo(tenantMiniMap);
+                tenantCurrentMarker.on('dragend', function(e) {
+                  const pos = e.target.getLatLng();
+                  updateTenantCoordinatesFromMap(pos.lat, pos.lng);
+                });
+              }
+            }
+
+            showToast('Koordinat berhasil di parse dari URL', 'success');
+            return;
+          }
+        }
+      } catch (e) {
+        // Not a valid URL, try direct coordinate parsing
+      }
+
+      // Try to parse as direct coordinates "lat, lng"
+      const coordMatch = input.match(/(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)/);
+      if (coordMatch) {
+        const lat = parseFloat(coordMatch[1]);
+        const lng = parseFloat(coordMatch[3]);
+        if (!isNaN(lat) && !isNaN(lng)) {
+          document.getElementById('tenantLocationLat').value = lat.toFixed(6);
+          document.getElementById('tenantLocationLng').value = lng.toFixed(6);
+          document.getElementById('tenantCoordinateDisplay').innerHTML = `
+            <div class="font-mono text-sm">
+              <span class="font-semibold">📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
+            </div>
+            <div class="text-xs text-gray-600 mt-1">
+              Klik peta untuk mengubah • Drag marker untuk penyesuaian
+            </div>
+          `;
+
+          if (tenantMiniMap) {
+            tenantMiniMap.setView([lat, lng], 15);
+            if (tenantCurrentMarker) {
+              tenantCurrentMarker.setLatLng([lat, lng]);
+            } else {
+              tenantCurrentMarker = L.marker([lat, lng], { draggable: true }).addTo(tenantMiniMap);
+              tenantCurrentMarker.on('dragend', function(e) {
+                const pos = e.target.getLatLng();
+                updateTenantCoordinatesFromMap(pos.lat, pos.lng);
+              });
+            }
+          }
+
+          showToast('Koordinat berhasil di parse', 'success');
+          return;
+        }
+      }
+
+      showToast('Format tidak valid. Gunakan format: -6.2088, 120.8646 atau URL Google Maps', 'error');
+    }
+
+    // Apply manually entered coordinates in tenant modal
+    function applyTenantManualCoordinates() {
+      const lat = document.getElementById('tenantManualLat').value.trim();
+      const lng = document.getElementById('tenantManualLng').value.trim();
+
+      if (!lat || !lng) {
+        showToast('Masukkan latitude dan longitude terlebih dahulu', 'error');
+        return;
+      }
+
+      const latFloat = parseFloat(lat);
+      const lngFloat = parseFloat(lng);
+
+      if (isNaN(latFloat) || isNaN(lngFloat)) {
+        showToast('Format koordinat tidak valid', 'error');
+        return;
+      }
+
+      if (latFloat < -90 || latFloat > 90) {
+        showToast('Latitude harus antara -90 dan 90', 'error');
+        return;
+      }
+
+      if (lngFloat < -180 || lngFloat > 180) {
+        showToast('Longitude harus antara -180 dan 180', 'error');
+        return;
+      }
+
+      document.getElementById('tenantLocationLat').value = latFloat.toFixed(6);
+      document.getElementById('tenantLocationLng').value = lngFloat.toFixed(6);
+
+      document.getElementById('tenantCoordinateDisplay').innerHTML = `
+        <div class="font-mono text-sm">
+          <span class="font-semibold">📍 ${latFloat.toFixed(6)}, ${lngFloat.toFixed(6)}</span>
+        </div>
+        <div class="text-xs text-gray-600 mt-1">
+          Klik peta untuk mengubah • Drag marker untuk penyesuaian
+        </div>
+      `;
+
+      if (tenantMiniMap) {
+        tenantMiniMap.setView([latFloat, lngFloat], 15);
+        if (tenantCurrentMarker) {
+          tenantCurrentMarker.setLatLng([latFloat, lngFloat]);
+        } else {
+          tenantCurrentMarker = L.marker([latFloat, lngFloat], { draggable: true }).addTo(tenantMiniMap);
+          tenantCurrentMarker.on('dragend', function(e) {
+            const pos = e.target.getLatLng();
+            updateTenantCoordinatesFromMap(pos.lat, pos.lng);
+          });
+        }
+      }
+
+      showToast('Koordinat berhasil diterapkan', 'success');
+    }
+
+    // ===== TENANT LOCATION MAP FUNCTIONS =====
+
+    function initializeTenantMap() {
+      try {
+        if (typeof L === 'undefined') {
+          throw new Error('Leaflet library not loaded');
+        }
+
+        const defaultLat = -2.2166;
+        const defaultLng = 113.9209;
+
+        tenantMiniMap = L.map('tenantLocationMap').setView([defaultLat, defaultLng], 5);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors',
+          maxZoom: 18,
+          errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+        }).addTo(tenantMiniMap);
+
+        tenantMiniMap.on('click', function(e) {
+          updateTenantCoordinatesFromMap(e.latlng.lat, e.latlng.lng);
+        });
+
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            function(position) {
+              tenantMiniMap.setView([position.coords.latitude, position.coords.longitude], 13);
+            },
+            function() {
+              setTenantMarker(defaultLat, defaultLng);
+            },
+            { timeout: 10000 }
+          );
+        } else {
+          setTenantMarker(defaultLat, defaultLng);
+        }
+      } catch (error) {
+        console.error('Tenant map initialization error:', error);
+      }
+    }
+
+    function setTenantMarker(lat, lng) {
+      if (tenantCurrentMarker) {
+        tenantCurrentMarker.setLatLng([lat, lng]);
+      } else {
+        tenantCurrentMarker = L.marker([lat, lng], { draggable: true }).addTo(tenantMiniMap);
+        tenantCurrentMarker.on('dragend', function(e) {
+          const position = e.target.getLatLng();
+          updateTenantCoordinatesFromMap(position.lat, position.lng);
+        });
+      }
+      if (tenantMiniMap) {
+        tenantMiniMap.setView([lat, lng], 15);
+      }
+      updateTenantCoordinateDisplay(lat, lng);
+
+      // Update hidden form inputs
+      document.getElementById('tenantLocationLat').value = lat.toFixed(6);
+      document.getElementById('tenantLocationLng').value = lng.toFixed(6);
+    }
+
+    function updateTenantCoordinatesFromMap(lat, lng) {
+      console.log('📍 Tenant coordinates updated from map:', lat, lng);
+
+      document.getElementById('tenantLocationLat').value = lat.toFixed(6);
+      document.getElementById('tenantLocationLng').value = lng.toFixed(6);
+
+      updateTenantCoordinateDisplay(lat, lng);
+
+      if (tenantCurrentMarker) {
+        tenantCurrentMarker.setLatLng([lat, lng]);
+      } else {
+        setTenantMarker(lat, lng);
+      }
+    }
+
+    function updateTenantCoordinateDisplay(lat, lng) {
+      const display = document.getElementById('tenantCoordinateDisplay');
+      if (display && lat && lng) {
+        display.innerHTML = `
+          <div class="font-mono text-sm">
+            <span class="font-semibold">📍 ${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
+          </div>
+          <div class="text-xs text-gray-600 mt-1">
+            Klik peta untuk mengubah • Drag marker untuk penyesuaian
+          </div>
+        `;
+      }
+    }
+
+    function centerTenantMapOnCoordinates() {
+      const lat = parseFloat(document.getElementById('tenantLocationLat').value);
+      const lng = parseFloat(document.getElementById('tenantLocationLng').value);
+      if (!isNaN(lat) && !isNaN(lng) && tenantMiniMap) {
+        tenantMiniMap.setView([lat, lng], 15);
+      } else if (tenantMiniMap) {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(function(position) {
+            tenantMiniMap.setView([position.coords.latitude, position.coords.longitude], 13);
+          });
+        }
+      }
+    }
+
+    function clearTenantMapMarker() {
+      if (tenantCurrentMarker && tenantMiniMap) {
+        tenantMiniMap.removeLayer(tenantCurrentMarker);
+        tenantCurrentMarker = null;
+        document.getElementById('tenantLocationLat').value = '';
+        document.getElementById('tenantLocationLng').value = '';
+        const display = document.getElementById('tenantCoordinateDisplay');
+        if (display) {
+          display.innerHTML = '<span class="text-gray-500">Belum ada koordinat dipilih</span>';
+        }
+      }
+    }
+
+    function copyTenantCurrentCoordinates() {
+      const lat = document.getElementById('tenantLocationLat').value;
+      const lng = document.getElementById('tenantLocationLng').value;
+
+      if (lat && lng) {
+        navigator.clipboard.writeText(`${lat}, ${lng}`).then(() => {
+          const btn = document.getElementById('copyTenantCoordsBtn');
+          const originalHTML = btn.innerHTML;
+          btn.innerHTML = '<i class="fas fa-check mr-1"></i>Tersalin!';
+          setTimeout(() => {
+            btn.innerHTML = originalHTML;
+          }, 2000);
+        }).catch(err => {
+          console.error('Failed to copy:', err);
+          showToast('Gagal menyalin koordinat. Coba lagi.', 'error');
+        });
+      } else {
+        showToast('Belum ada koordinat yang bisa disalin', 'warning');
       }
     }
   </script>

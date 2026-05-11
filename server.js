@@ -1415,6 +1415,10 @@ app.delete('/api/admin/tenant-locations/:id', authenticateAdmin, async (req, res
   }
 });
 
+
+
+
+
 // Admin tenant detail
 app.get('/api/admin/tenants/:tenantId', authenticateAdmin, async (req, res) => {
   try {
@@ -2499,6 +2503,13 @@ async function startServer() {
       await db.query("INSERT IGNORE INTO tenants (tenant_id, nama_sekolah, absensi_method) VALUES ('YPWILUTIM', 'YPWI Lutim Pusat', 'personal')");
       await db.query("INSERT IGNORE INTO tenants (tenant_id, nama_sekolah, absensi_method) VALUES ('SDIT', 'SDIT Wahdah Islamiyah', 'hp')");
       console.log('Sample tenant inserted');
+
+      // Insert sample tenant locations
+      await db.query("INSERT IGNORE INTO tenant_locations (tenant_id, location_name, latitude, longitude, location_radius, is_active) VALUES ('YPWILUTIM', 'Kampus Pusat YPWI Lutim', -2.464250432324962, 120.86496689263612, 150, 1)");
+      await db.query("INSERT IGNORE INTO tenant_locations (tenant_id, location_name, latitude, longitude, location_radius, is_active) VALUES ('YPWILUTIM', 'Kampus Cabang Utara', -2.454250432324962, 120.87496689263612, 100, 1)");
+      await db.query("INSERT IGNORE INTO tenant_locations (tenant_id, location_name, latitude, longitude, location_radius, is_active) VALUES ('SDIT', 'Kampus Pusat SDIT Wahdah', -2.474250432324962, 120.85496689263612, 120, 1)");
+      await db.query("INSERT IGNORE INTO tenant_locations (tenant_id, location_name, latitude, longitude, location_radius, is_active) VALUES ('SDIT', 'Kampus Cabang Selatan', -2.484250432324962, 120.84496689263612, 100, 0)");
+      console.log('Sample tenant locations inserted');
 
 
 

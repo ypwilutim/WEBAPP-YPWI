@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 05, 2026 at 03:11 AM
--- Server version: 10.4.32-MariaDB
--- PHP Version: 8.2.12
+-- Waktu pembuatan: 10 Bulan Mei 2026 pada 01.52
+-- Versi server: 10.4.32-MariaDB
+-- Versi PHP: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -24,7 +24,7 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Table structure for table `attendance_logs`
+-- Struktur dari tabel `attendance_logs`
 --
 
 CREATE TABLE `attendance_logs` (
@@ -35,13 +35,19 @@ CREATE TABLE `attendance_logs` (
   `jenis` enum('masuk','pulang') NOT NULL,
   `metode` enum('dashboard','scanner') NOT NULL DEFAULT 'scanner',
   `status` enum('tepat_waktu','terlambat') NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `selfie_url` varchar(255) DEFAULT NULL,
+  `dinas_luar` tinyint(1) DEFAULT 0,
+  `kegiatan_dinas` text DEFAULT NULL,
+  `latitude` decimal(10,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
+  `keterangan` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `attendance_rules`
+-- Struktur dari tabel `attendance_rules`
 --
 
 CREATE TABLE `attendance_rules` (
@@ -52,6 +58,7 @@ CREATE TABLE `attendance_rules` (
   `jam_selesai` time NOT NULL,
   `keterangan` varchar(255) DEFAULT NULL,
   `status_log` enum('tepat_waktu','terlambat') NOT NULL,
+  `hari` varchar(100) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -59,7 +66,47 @@ CREATE TABLE `attendance_rules` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `teachers`
+-- Struktur dari tabel `qr_attendance_logs`
+--
+
+CREATE TABLE `qr_attendance_logs` (
+  `id` int(11) NOT NULL,
+  `scan_id` varchar(20) NOT NULL,
+  `teacher_id` int(11) DEFAULT NULL,
+  `device_id` varchar(100) NOT NULL,
+  `tenant_id` varchar(20) NOT NULL,
+  `waktu_scan` datetime NOT NULL,
+  `jenis` enum('masuk','pulang') NOT NULL,
+  `signature` varchar(255) NOT NULL,
+  `sync_status` enum('pending','synced','failed','rejected') DEFAULT 'pending',
+  `error_message` text DEFAULT NULL,
+  `offline_validated` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `synced_at` datetime DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Struktur dari tabel `scanner_devices`
+--
+
+CREATE TABLE `scanner_devices` (
+  `id` int(11) NOT NULL,
+  `device_id` varchar(100) NOT NULL,
+  `tenant_id` varchar(20) NOT NULL,
+  `school_name` varchar(100) NOT NULL,
+  `secret_key` varchar(255) NOT NULL,
+  `status` enum('active','inactive','maintenance') DEFAULT 'active',
+  `last_sync` datetime DEFAULT NULL,
+  `device_name` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Struktur dari tabel `teachers`
 --
 
 CREATE TABLE `teachers` (
@@ -83,31 +130,15 @@ CREATE TABLE `teachers` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Triggers `teachers`
+-- Trigger `teachers`
 --
 DELIMITER $$
 CREATE TRIGGER `before_teacher_insert` BEFORE INSERT ON `teachers` FOR EACH ROW BEGIN
-    IF NEW.scan_id IS NULL OR NEW.scan_id = "" THEN
-        SET NEW.scan_id = NEW.nik;
-    END IF;
-    IF NEW.tmt IS NOT NULL THEN
-        IF TIMESTAMPDIFF(YEAR, NEW.tmt, CURDATE()) >= 2 AND (NEW.nip IS NULL OR NEW.nip = "") THEN
-            SIGNAL SQLSTATE "45000"
-            SET MESSAGE_TEXT = "NIP wajib diisi jika TMT sudah 2 tahun atau lebih";
-        END IF;
-    END IF;
-END
-$$
-DELIMITER ;
-DELIMITER $$
-CREATE TRIGGER `before_teacher_update` BEFORE UPDATE ON `teachers` FOR EACH ROW BEGIN
-    IF NEW.scan_id IS NULL OR NEW.scan_id = "" THEN
-        SET NEW.scan_id = NEW.nik;
-    END IF;
-    IF NEW.tmt IS NOT NULL THEN
-        IF TIMESTAMPDIFF(YEAR, NEW.tmt, CURDATE()) >= 2 AND (NEW.nip IS NULL OR NEW.nip = "") THEN
-            SIGNAL SQLSTATE "45000"
-            SET MESSAGE_TEXT = "NIP wajib diisi jika TMT sudah 2 tahun atau lebih";
+    -- Jika TMT sudah 2 tahun atau lebih, NIP wajib diisi (tidak boleh NIK-RANDOM atau Kosong)
+    IF NEW.tmt <= DATE_SUB(CURDATE(), INTERVAL 2 YEAR) THEN
+        IF NEW.nip IS NULL OR NEW.nip = '' OR NEW.nip = '-' THEN
+            SIGNAL SQLSTATE '45000' 
+            SET MESSAGE_TEXT = 'Error #1644 - NIP wajib diisi jika TMT sudah 2 tahun atau lebih';
         END IF;
     END IF;
 END
@@ -117,7 +148,7 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
--- Table structure for table `teacher_assignments`
+-- Struktur dari tabel `teacher_assignments`
 --
 
 CREATE TABLE `teacher_assignments` (
@@ -132,7 +163,7 @@ CREATE TABLE `teacher_assignments` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `temp_teachers`
+-- Struktur dari tabel `temp_teachers`
 --
 
 CREATE TABLE `temp_teachers` (
@@ -167,41 +198,45 @@ CREATE TABLE `temp_teachers` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `tenants`
+-- Struktur dari tabel `tenants`
 --
 
 CREATE TABLE `tenants` (
   `tenant_id` varchar(20) NOT NULL,
   `nama_sekolah` varchar(100) NOT NULL,
   `absensi_method` enum('personal','gateway') NOT NULL DEFAULT 'personal',
-  `use_central_rules` tinyint(1) DEFAULT 0,
+  `wa_api_key` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `latitude` decimal(10,8) DEFAULT NULL,
+  `longitude` decimal(11,8) DEFAULT NULL,
+  `location_radius` int(11) DEFAULT 100,
+  `location_name` varchar(255) DEFAULT NULL,
+  `use_central_rules` tinyint(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
-
 --
--- Table structure for table `tenant_locations`
+-- Struktur dari tabel `tenant_locations`
 --
 
 CREATE TABLE `tenant_locations` (
   `id` int(11) NOT NULL,
   `tenant_id` varchar(20) NOT NULL,
-  `location_name` varchar(100) NOT NULL,
+  `location_name` varchar(100) NOT NULL DEFAULT 'Lokasi Utama',
   `latitude` decimal(10,8) DEFAULT NULL,
   `longitude` decimal(11,8) DEFAULT NULL,
   `location_radius` int(11) DEFAULT 100,
   `is_active` tinyint(1) DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `users`
+-- Struktur dari tabel `users`
 --
 
 CREATE TABLE `users` (
@@ -222,7 +257,7 @@ CREATE TABLE `users` (
 --
 
 --
--- Indexes for table `attendance_logs`
+-- Indeks untuk tabel `attendance_logs`
 --
 ALTER TABLE `attendance_logs`
   ADD PRIMARY KEY (`id`),
@@ -232,14 +267,36 @@ ALTER TABLE `attendance_logs`
   ADD KEY `idx_jenis` (`jenis`);
 
 --
--- Indexes for table `attendance_rules`
+-- Indeks untuk tabel `attendance_rules`
 --
 ALTER TABLE `attendance_rules`
   ADD PRIMARY KEY (`id`),
   ADD KEY `idx_tenant_id` (`tenant_id`);
 
 --
--- Indexes for table `teachers`
+-- Indeks untuk tabel `qr_attendance_logs`
+--
+ALTER TABLE `qr_attendance_logs`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_scan_id` (`scan_id`),
+  ADD KEY `idx_device_id` (`device_id`),
+  ADD KEY `idx_teacher_id` (`teacher_id`),
+  ADD KEY `idx_tenant_id` (`tenant_id`),
+  ADD KEY `idx_sync_status` (`sync_status`),
+  ADD KEY `idx_waktu_scan` (`waktu_scan`);
+
+--
+-- Indeks untuk tabel `scanner_devices`
+--
+ALTER TABLE `scanner_devices`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `device_id` (`device_id`),
+  ADD KEY `idx_tenant_id` (`tenant_id`),
+  ADD KEY `idx_device_id` (`device_id`),
+  ADD KEY `idx_status` (`status`);
+
+--
+-- Indeks untuk tabel `teachers`
 --
 ALTER TABLE `teachers`
   ADD PRIMARY KEY (`id`),
@@ -250,7 +307,7 @@ ALTER TABLE `teachers`
   ADD KEY `idx_status_aktif` (`status_aktif`);
 
 --
--- Indexes for table `teacher_assignments`
+-- Indeks untuk tabel `teacher_assignments`
 --
 ALTER TABLE `teacher_assignments`
   ADD PRIMARY KEY (`id`),
@@ -259,14 +316,14 @@ ALTER TABLE `teacher_assignments`
   ADD KEY `idx_tenant_id` (`tenant_id`);
 
 --
--- Indexes for table `tenants`
+-- Indeks untuk tabel `tenants`
 --
 ALTER TABLE `tenants`
   ADD PRIMARY KEY (`tenant_id`),
   ADD KEY `idx_tenant_id` (`tenant_id`);
 
 --
--- Indexes for table `tenant_locations`
+-- Indeks untuk tabel `tenant_locations`
 --
 ALTER TABLE `tenant_locations`
   ADD PRIMARY KEY (`id`),
@@ -274,7 +331,7 @@ ALTER TABLE `tenant_locations`
   ADD KEY `idx_is_active` (`is_active`);
 
 --
--- Indexes for table `users`
+-- Indeks untuk tabel `users`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
@@ -285,75 +342,88 @@ ALTER TABLE `users`
   ADD KEY `idx_role` (`role`);
 
 --
--- AUTO_INCREMENT for dumped tables
+-- AUTO_INCREMENT untuk tabel yang dibuang
 --
 
 --
--- AUTO_INCREMENT for table `attendance_logs`
+-- AUTO_INCREMENT untuk tabel `attendance_logs`
 --
 ALTER TABLE `attendance_logs`
   MODIFY `id` bigint(20) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `attendance_rules`
+-- AUTO_INCREMENT untuk tabel `attendance_rules`
 --
 ALTER TABLE `attendance_rules`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `teachers`
+-- AUTO_INCREMENT untuk tabel `qr_attendance_logs`
+--
+ALTER TABLE `qr_attendance_logs`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT untuk tabel `scanner_devices`
+--
+ALTER TABLE `scanner_devices`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT untuk tabel `teachers`
 --
 ALTER TABLE `teachers`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `teacher_assignments`
+-- AUTO_INCREMENT untuk tabel `teacher_assignments`
 --
 ALTER TABLE `teacher_assignments`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- AUTO_INCREMENT for table `users`
---
-ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT for table `tenant_locations`
+-- AUTO_INCREMENT untuk tabel `tenant_locations`
 --
 ALTER TABLE `tenant_locations`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
--- Constraints for dumped tables
+-- AUTO_INCREMENT untuk tabel `users`
+--
+ALTER TABLE `users`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- Ketidakleluasaan untuk tabel pelimpahan (Dumped Tables)
 --
 
 --
--- Constraints for table `attendance_logs`
+-- Ketidakleluasaan untuk tabel `attendance_logs`
 --
 ALTER TABLE `attendance_logs`
   ADD CONSTRAINT `attendance_logs_ibfk_1` FOREIGN KEY (`teacher_id`) REFERENCES `teachers` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `attendance_logs_ibfk_2` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`tenant_id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `teacher_assignments`
+-- Ketidakleluasaan untuk tabel `qr_attendance_logs`
+--
+ALTER TABLE `qr_attendance_logs`
+  ADD CONSTRAINT `qr_attendance_logs_ibfk_device` FOREIGN KEY (`device_id`) REFERENCES `scanner_devices` (`device_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `qr_attendance_logs_ibfk_teacher` FOREIGN KEY (`teacher_id`) REFERENCES `teachers` (`id`) ON DELETE SET NULL;
+
+--
+-- Ketidakleluasaan untuk tabel `teacher_assignments`
 --
 ALTER TABLE `teacher_assignments`
   ADD CONSTRAINT `teacher_assignments_ibfk_1` FOREIGN KEY (`teacher_id`) REFERENCES `teachers` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `teacher_assignments_ibfk_2` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`tenant_id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `users`
+-- Ketidakleluasaan untuk tabel `users`
 --
 ALTER TABLE `users`
   ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`guru_id`) REFERENCES `teachers` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `users_ibfk_2` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`tenant_id`) ON DELETE CASCADE;
-
---
--- Constraints for table `tenant_locations`
---
-ALTER TABLE `tenant_locations`
-  ADD CONSTRAINT `tenant_locations_ibfk_1` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`tenant_id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
