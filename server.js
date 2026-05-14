@@ -1132,6 +1132,8 @@ app.get('/api/admin/teachers', authenticateAdmin, async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const offset = (page - 1) * limit;
     const search = req.query.search ? req.query.search.trim() : '';
+    const getAll = req.query.all === '1';
+    const hasWa = req.query.has_wa === '1';
 
     let whereClause = 't.status_aktif = 1';
     let queryParams = [];
@@ -1141,12 +1143,16 @@ app.get('/api/admin/teachers', authenticateAdmin, async (req, res) => {
       queryParams.push(`%${search}%`);
     }
 
+    if (hasWa) {
+      whereClause += ' AND t.no_wa IS NOT NULL AND t.no_wa != ""';
+    }
+
     // Get total count
     const [totalResult] = await db.query(`SELECT COUNT(*) as count FROM teachers t WHERE ${whereClause}`, queryParams);
     const total = totalResult.count;
 
     // Get teachers with assignments and school names
-    const teachers = await db.query(`
+    let query = `
       SELECT
         t.id, t.nama, t.nik, t.nip, t.email, t.status_kepegawaian, t.status_aktif, t.no_wa,
         GROUP_CONCAT(DISTINCT CONCAT(ta.tenant_id, ':', ta.jabatan_di_unit, ':', tn.nama_sekolah)) as assignments
@@ -1156,8 +1162,14 @@ app.get('/api/admin/teachers', authenticateAdmin, async (req, res) => {
       WHERE ${whereClause}
       GROUP BY t.id
       ORDER BY t.nama ASC
-      LIMIT ? OFFSET ?
-    `, [...queryParams, limit, offset]);
+    `;
+
+    if (!getAll) {
+      query += ' LIMIT ? OFFSET ?';
+      queryParams.push(limit, offset);
+    }
+
+    const teachers = await db.query(query, queryParams);
 
     // Format assignments
     const formattedTeachers = teachers.map(teacher => ({
@@ -1337,6 +1349,43 @@ app.post('/api/admin/tenant-locations', authenticateAdmin, async (req, res) => {
   } catch (error) {
     console.error('[CREATE TENANT LOCATION ERROR]', error.message);
     res.status(500).json({ success: false, message: 'Error creating tenant location' });
+  }
+});
+
+// Admin create tenant
+app.post('/api/admin/tenants', authenticateAdmin, async (req, res) => {
+  try {
+    const { tenant_id, nama_sekolah, absensi_method } = req.body;
+
+    // Validate required fields
+    if (!tenant_id || !nama_sekolah) {
+      return res.status(400).json({ success: false, message: 'tenant_id dan nama_sekolah wajib diisi' });
+    }
+
+    // Validate tenant_id format (alphanumeric and underscore, max 20 chars)
+    if (!/^[a-zA-Z0-9_]{1,20}$/.test(tenant_id)) {
+      return res.status(400).json({ success: false, message: 'tenant_id hanya boleh huruf, angka, dan underscore, maksimal 20 karakter' });
+    }
+
+    // Check if tenant already exists
+    const existing = await db.query('SELECT tenant_id FROM tenants WHERE tenant_id = ?', [tenant_id]);
+    if (existing.length > 0) {
+      return res.status(400).json({ success: false, message: 'Tenant ID sudah digunakan' });
+    }
+
+    const result = await db.query(
+      'INSERT INTO tenants (tenant_id, nama_sekolah, absensi_method) VALUES (?, ?, ?)',
+      [tenant_id, nama_sekolah, absensi_method || 'personal']
+    );
+
+    res.json({
+      success: true,
+      message: 'Tenant berhasil ditambahkan',
+      data: { id: result.insertId }
+    });
+  } catch (error) {
+    console.error('[CREATE TENANT ERROR]', error.message);
+    res.status(500).json({ success: false, message: 'Error creating tenant' });
   }
 });
 
@@ -2472,59 +2521,7 @@ async function startServer() {
     await db.initializeDatabase();
     console.log('Database initialized, starting server');
 
-    // Insert sample data
-    try {
-      // Create missing tables if they don't exist
-      console.log('Checking for missing tables...');
-      try {
-        await db.query(`
-          CREATE TABLE IF NOT EXISTS tenant_locations (
-            id INT(11) NOT NULL AUTO_INCREMENT,
-            tenant_id VARCHAR(20) NOT NULL,
-            location_name VARCHAR(100) NOT NULL,
-            latitude DECIMAL(10,8) DEFAULT NULL,
-            longitude DECIMAL(11,8) DEFAULT NULL,
-            location_radius INT(11) DEFAULT 100,
-            is_active TINYINT(1) DEFAULT 1,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),
-            PRIMARY KEY (id),
-            KEY tenant_id (tenant_id),
-            CONSTRAINT tenant_locations_ibfk_1 FOREIGN KEY (tenant_id) REFERENCES tenants (tenant_id) ON DELETE CASCADE
-          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-        `);
-        console.log('tenant_locations table created or already exists');
-      } catch (tableError) {
-        console.log('Table creation check completed:', tableError.message);
-      }
-
-      console.log('Inserting sample data...');
-      // Insert sample tenants
-      await db.query("INSERT IGNORE INTO tenants (tenant_id, nama_sekolah, absensi_method) VALUES ('YPWILUTIM', 'YPWI Lutim Pusat', 'personal')");
-      await db.query("INSERT IGNORE INTO tenants (tenant_id, nama_sekolah, absensi_method) VALUES ('SDIT', 'SDIT Wahdah Islamiyah', 'hp')");
-      console.log('Sample tenant inserted');
-
-      // Insert sample tenant locations
-      await db.query("INSERT IGNORE INTO tenant_locations (tenant_id, location_name, latitude, longitude, location_radius, is_active) VALUES ('YPWILUTIM', 'Kampus Pusat YPWI Lutim', -2.464250432324962, 120.86496689263612, 150, 1)");
-      await db.query("INSERT IGNORE INTO tenant_locations (tenant_id, location_name, latitude, longitude, location_radius, is_active) VALUES ('YPWILUTIM', 'Kampus Cabang Utara', -2.454250432324962, 120.87496689263612, 100, 1)");
-      await db.query("INSERT IGNORE INTO tenant_locations (tenant_id, location_name, latitude, longitude, location_radius, is_active) VALUES ('SDIT', 'Kampus Pusat SDIT Wahdah', -2.474250432324962, 120.85496689263612, 120, 1)");
-      await db.query("INSERT IGNORE INTO tenant_locations (tenant_id, location_name, latitude, longitude, location_radius, is_active) VALUES ('SDIT', 'Kampus Cabang Selatan', -2.484250432324962, 120.84496689263612, 100, 0)");
-      console.log('Sample tenant locations inserted');
-
-
-
-      // Check existing data
-      const existingTeachers = await db.query('SELECT COUNT(*) as count FROM teachers WHERE status_aktif = 1');
-      const existingAssignments = await db.query('SELECT COUNT(*) as count FROM teacher_assignments');
-      console.log(`Found ${existingTeachers[0].count} active teachers and ${existingAssignments[0].count} assignments in database`);
-
-      console.log('Sample data inserted successfully');
-    } catch (error) {
-      console.log('Sample data insert failed:', error.message);
-      console.log('Continuing without sample data...');
-    }
-
-  // Admin teacher completion progress
+    // Admin teacher completion progress
   app.get('/api/admin/teacher-completion-progress', authenticateAdmin, async (req, res) => {
     try {
       console.log('Teacher completion progress endpoint called');
