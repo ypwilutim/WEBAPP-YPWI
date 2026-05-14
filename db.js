@@ -13,9 +13,9 @@ const dbConfig = {
   queueLimit: 0,
   timezone: 'Z',
   dateStrings: true,
-  connectTimeout: 30000, // 30 seconds
+  connectTimeout: 30000,
   acquireTimeout: 30000,
-  timeout: 30000
+  charset: 'utf8mb4'
 };
 
 let pool;
