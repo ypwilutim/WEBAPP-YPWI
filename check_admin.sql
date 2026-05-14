@@ -1,1 +1,0 @@
-SELECT id, username, role, guru_id, is_profile_complete, is_default_password FROM users WHERE username = 'admin' OR username LIKE '%admin%';

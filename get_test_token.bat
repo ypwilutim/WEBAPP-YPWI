@@ -1,6 +1,0 @@
-@echo off
-echo Getting test admin token...
-curl -X GET "http://localhost:3000/api/admin/get-test-token" -H "Content-Type: application/json"
-echo.
-echo Press any key to continue...
-pause >nul

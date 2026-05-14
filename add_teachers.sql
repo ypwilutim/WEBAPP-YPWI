@@ -1,6 +1,0 @@
-INSERT INTO teachers (nama, nik, tempat_lahir, tanggal_lahir, jenis_kelamin, alamat, no_wa, email, sebagai, status_kepegawaian, tmt, nip, link_foto, status_aktif) VALUES
-('Budi Santoso', '1234567890', 'Makassar', '1985-03-15', 'L', 'Jl. Sudirman No. 10', '081234567890', 'budi.santoso@email.com', 'Guru Kelas', 'PNS', '2020-01-15', '19851234567890', NULL, 1),
-('Siti Aminah', '2345678901', 'Palopo', '1990-07-22', 'P', 'Jl. Ahmad Yani No. 25', '081345678901', 'siti.aminah@email.com', 'Guru Mapel', 'PNS', '2019-08-01', '19902345678901', NULL, 1),
-('Rudi Hartono', '3456789012', 'Palopo', '1988-11-30', 'L', 'Jl. Pattimura No. 8', '081456789012', 'rudi.hartono@email.com', 'Guru Kelas', 'GTY', '2021-02-01', '19883456789012', NULL, 1),
-('Dewi Lestari', '4567890123', 'Makassar', '1992-05-18', 'P', 'Jl. Jend. Sudirman No. 45', '081567890123', 'dewi.lestari@email.com', 'Guru Mapel', 'PNS', '2018-07-15', '19924567890123', NULL, 1),
-('Agus Wijaya', '5678901234', 'Palopo', '1987-09-10', 'L', 'Jl. Veteran No. 12', '081678901234', 'agus.wijaya@email.com', 'Kepala Sekolah', 'PNS', '2017-01-01', '19875678901234', NULL, 1);
