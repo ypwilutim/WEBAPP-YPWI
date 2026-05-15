@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Radius Lock</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        button:disabled { background: #ccc; cursor: not-allowed; opacity: 0.5; }
+        .btn-success { background: #10b981; color: white; border: none; border-radius: 5px; }
+        .btn-danger { background: #ef4444; color: white; border: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Test Tombol Absen Terkunci Jika Di Luar Radius</h1>
+
+    <div id="locationStatus" class="status error">Initializing...</div>
+
+    <div>
+        <button id="checkInBtn" class="btn-success" onclick="alert('Check In clicked')" disabled>
+            <i class="fas fa-sign-in-alt" style="margin-right: 0.5rem;"></i>Absen Masuk
+        </button>
+        <button id="checkOutBtn" class="btn-danger" onclick="alert('Check Out clicked')" disabled>
+            <i class="fas fa-sign-out-alt" style="margin-right: 0.5rem;"></i>Absen Pulang
+        </button>
+    </div>
+
+    <div style="margin-top: 20px;">
+        <h3>Test Scenarios:</h3>
+        <button onclick="simulateLocation(-2.64552, 121.127793)">✅ Dalam Radius (Sekolah)</button>
+        <button onclick="simulateLocation(-2.64702, 121.127793)">❌ Luar Radius (300m)</button>
+        <button onclick="simulateLocation(-2.69052, 121.127793)">❌ Jauh (5km)</button>
+        <button onclick="clearLocation()">📍 Clear Location</button>
+    </div>
+
+    <div id="result" style="margin-top: 20px; padding: 10px; background: #f0f0f0; border-radius: 5px;">
+        Test results will appear here...
+    </div>
+
+    <script>
+        let currentLocation = null;
+
+        function updateLocationDisplay(success, message) {
+            const statusDiv = document.getElementById('locationStatus');
+            statusDiv.className = `status ${success ? 'success' : 'error'}`;
+            statusDiv.textContent = message;
+        }
+
+        function updateAttendanceButtonsState() {
+            const checkInBtn = document.getElementById('checkInBtn');
+            const checkOutBtn = document.getElementById('checkOutBtn');
+            const resultDiv = document.getElementById('result');
+
+            if (!currentLocation) {
+                checkInBtn.disabled = true;
+                checkOutBtn.disabled = true;
+                resultDiv.innerHTML = '<span style="color: red;">❌ No location - Buttons DISABLED</span>';
+                updateLocationDisplay(false, '❌ Lokasi tidak tersedia. Aktifkan GPS untuk absensi.');
+                return;
+            }
+
+            // Mock radius validation
+            validateLocationRadius(currentLocation.latitude, currentLocation.longitude)
+                .then(result => {
+                    if (result.withinRadius) {
+                        checkInBtn.disabled = false;
+                        checkOutBtn.disabled = false;
+                        resultDiv.innerHTML = `<span style="color: green;">✅ Within radius - Buttons ENABLED (${result.distance.toFixed(0)}m from school)</span>`;
+                        updateLocationDisplay(true, `✅ Lokasi valid - Dalam radius ${result.radius}m dari ${result.schoolName}`);
+                    } else {
+                        checkInBtn.disabled = true;
+                        checkOutBtn.disabled = true;
+                        resultDiv.innerHTML = `<span style="color: red;">❌ Outside radius - Buttons DISABLED (${result.distance.toFixed(0)}m from school, max ${result.radius}m)</span>`;
+                        updateLocationDisplay(false, `❌ Di luar radius! Jarak ${result.distance.toFixed(0)}m dari ${result.schoolName} (max ${result.radius}m)`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Validation error:', error);
+                    checkInBtn.disabled = false;
+                    checkOutBtn.disabled = false;
+                    resultDiv.innerHTML = '<span style="color: orange;">⚠️ Validation error - Buttons ENABLED (fallback)</span>';
+                    updateLocationDisplay(false, '⚠️ Gagal memvalidasi lokasi. Absensi tetap diizinkan.');
+                });
+        }
+
+        async function validateLocationRadius(userLat, userLng) {
+            // Mock school location (SDIT coordinates)
+            const schoolLat = -2.64552;
+            const schoolLng = 121.127793;
+            const radius = 200; // 200 meters
+
+            const distance = calculateDistance(userLat, userLng, schoolLat, schoolLng);
+
+            return {
+                withinRadius: (distance * 1000) <= radius,
+                distance: distance * 1000,
+                radius: radius,
+                schoolName: 'SDIT WAHDAH ISLAMIYAH'
+            };
+        }
+
+        function calculateDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a =
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function simulateLocation(lat, lng) {
+            currentLocation = { latitude: lat, longitude: lng, accuracy: 10 };
+            console.log(`Simulated location: ${lat}, ${lng}`);
+            updateAttendanceButtonsState();
+        }
+
+        function clearLocation() {
+            currentLocation = null;
+            updateAttendanceButtonsState();
+        }
+
+        // Initial state
+        updateAttendanceButtonsState();
+        console.log('Radius lock test initialized');
+    </script>
+</body>
+</html>

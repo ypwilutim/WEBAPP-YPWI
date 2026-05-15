@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>Testing Server</h1>
+    <div id="result"></div>
+
+    <script>
+        fetch('http://localhost:3000/api/search/teachers?limit=1')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('result').innerHTML =
+                    '<p style="color: green;">✅ Server is running! Found ' + data.data.length + ' teachers</p>';
+            })
+            .catch(error => {
+                document.getElementById('result').innerHTML =
+                    '<p style="color: red;">❌ Server error: ' + error.message + '</p>';
+            });
+    </script>
+</body>
+</html>

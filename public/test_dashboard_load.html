@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Dashboard Load</title>
+</head>
+<body>
+    <h1>Loading Dashboard...</h1>
+    <div id="result"></div>
+
+    <script>
+        // Simple test to load dashboard script
+        const result = document.getElementById('result');
+
+        try {
+            // Try to load and parse the dashboard script
+            fetch('dashboard.html')
+                .then(response => response.text())
+                .then(html => {
+                    // Extract script content
+                    const scriptMatch = html.match(/<script[^>]*>([\s\S]*?)<\/script>/g);
+                    if (scriptMatch) {
+                        result.innerHTML = `<p>Found ${scriptMatch.length} script tags</p>`;
+
+                        // Test each script for syntax
+                        scriptMatch.forEach((script, index) => {
+                            const scriptContent = script.replace(/<script[^>]*>/, '').replace(/<\/script>/, '');
+                            try {
+                                new Function(scriptContent);
+                                result.innerHTML += `<p>Script ${index + 1}: ✅ OK</p>`;
+                            } catch (e) {
+                                result.innerHTML += `<p>Script ${index + 1}: ❌ ERROR - ${e.message} at line ${e.lineNumber}</p>`;
+
+                                // Show problematic code
+                                const lines = scriptContent.split('\n');
+                                const errorLine = e.lineNumber - 1;
+                                const startLine = Math.max(0, errorLine - 2);
+                                const endLine = Math.min(lines.length - 1, errorLine + 2);
+
+                                result.innerHTML += '<pre style="background: #f0f0f0; padding: 10px; margin: 10px 0;">';
+                                for (let i = startLine; i <= endLine; i++) {
+                                    const marker = i === errorLine ? '>>>' : '   ';
+                                    result.innerHTML += `${marker} ${i + 1}: ${lines[i]}\n`;
+                                }
+                                result.innerHTML += '</pre>';
+                                throw e; // Stop processing
+                            }
+                        });
+                    } else {
+                        result.innerHTML = '<p>No scripts found</p>';
+                    }
+                })
+                .catch(error => {
+                    result.innerHTML = `<p>❌ Error loading dashboard: ${error.message}</p>`;
+                });
+
+        } catch (e) {
+            result.innerHTML = `<p>❌ Immediate error: ${e.message}</p>`;
+        }
+    </script>
+</body>
+</html>

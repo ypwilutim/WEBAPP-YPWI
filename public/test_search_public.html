@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Public Search</title>
+</head>
+<body>
+    <h1>Testing Public Teacher Search</h1>
+    <div id="result"></div>
+
+    <script>
+        async function testPublicSearch() {
+            const result = document.getElementById('result');
+            result.innerHTML = '<p>Testing public search endpoint...</p>';
+
+            try {
+                const response = await fetch('http://localhost:3000/api/search/teachers?limit=3');
+
+                if (!response.ok) {
+                    result.innerHTML = `<p style="color: red;">HTTP Error: ${response.status} ${response.statusText}</p>`;
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    result.innerHTML = `
+                        <p style="color: green;">✅ Endpoint works! Found ${data.data.length} teachers</p>
+                        <ul>
+                            ${data.data.map(t => `<li>${t.nama} - Has User: ${t.has_user ? 'Yes' : 'No'}</li>`).join('')}
+                        </ul>
+                    `;
+                } else {
+                    result.innerHTML = `<p style="color: red;">❌ API Error: ${data.message}</p>`;
+                }
+
+            } catch (error) {
+                result.innerHTML = `<p style="color: red;">❌ Network Error: ${error.message}</p>`;
+            }
+        }
+
+        // Run test
+        testPublicSearch();
+    </script>
+</body>
+</html>

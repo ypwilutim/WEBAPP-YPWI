@@ -1,10 +1,102 @@
+# Dependencies
 node_modules/
+
+# Environment variables
 .env
 .env.*
+
+# Logs
 *.log
+*.txt
+
+# OS generated files
 .DS_Store
 Thumbs.db
-scripts/
+
+# Backup files
 *.bak
+*.backup
+*~
+*.bak.*
+*.orig
+*.swp
+server.js.backup
+server.js.bak
+server-minimal.js
+server-backup-full.js
+*.html.backup
+
+# Test and debug files
+check-*.js
+test-*.js
+*-test.js
+debug-*.js
+validate-*.js
+extract_*.js
+*-test-*/
+test*/
+test-*/
+
+# Documentation and markdown files that are not essential for production
+*_FIX.md
+*_SUMMARY.md
+*_GUIDE.md
+*_TEST.md
+VERIFICATION_COMPLETE.md
+DEPLOYMENT_READY.md
+FINAL_IMPLEMENTATION.md
+FINAL_SUMMARY.md
+IMPLEMENTATION_SUMMARY.md
+TESTING_GUIDE.md
+WHATSAPP_SETUP.md
+WHATSAPP_SETUP_GUIDE.md
+BCRYPT_FIX.md
+DB_SYNC_FIX.md
+FIX_SUMMARY.md
+blueorint.txt
+
+# SQL files (except migrations)
+*.sql
+!migrations/
+
+# Batch and JavaScript helper files
+*.bat
+*_server.js
+
+# Public test files
+public/*_test.html
+public/test-*.html
+public/simple_test.html
+public/syntax_test.html
+public/debug_dashboard_minimal.html
+public/minimal_dashboard.html
+public/dashboard_minimal_test.html
+public/dashboard_clean.html
+public/admin-dashboard*.html
+public/search-teacher.html
+public/complete-profile.html
+
+# Selfie uploads (should be in uploads/ directory)
+selfie/
 uploads/
-*.sqlite
+
+# Scripts directory
+scripts/
+
+# Query file
+query
+
+# Other temporary files
+output.txt
+error.txt
+temp_response.txt
+temp_response2.txt
+
+# Keep essential files
+!README.md
+!package.json
+!package-lock.json
+!server.js
+!db.js
+!public/
+!migrations/

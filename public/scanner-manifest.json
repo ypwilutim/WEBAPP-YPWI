@@ -1,0 +1,31 @@
+{
+  "name": "YPWI Lutim Scanner Absensi",
+  "short_name": "YPWI Scanner",
+  "description": "Aplikasi scanner QR untuk absensi offline di sekolah YPWI Lutim",
+  "version": "1.0.3",
+  "start_url": "/scanner.html?v=1.0.3",
+  "display": "standalone",
+  "background_color": "#1f2937",
+  "theme_color": "#1f2937",
+  "orientation": "portrait",
+  "scope": "/",
+  "cache": "no-cache",
+  "icons": [
+    {
+      "src": "/assets/images/YPWI LOGO HITAM.png?v=1.0.3",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/images/YPWI LOGO HITAM.png?v=1.0.3",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "lang": "id-ID",
+  "dir": "ltr",
+  "prefer_related_applications": false
+}

@@ -1,0 +1,31 @@
+<!-- Test syntax validation for admin-dashboard-browser.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test</title>
+</head>
+<body>
+    <h1>Syntax Test</h1>
+    <script>
+        // Test basic JavaScript syntax
+        function testFunction() {
+            if (true) {
+                console.log('test');
+                return {
+                    success: true,
+                    message: 'OK'
+                };
+            } else {
+                console.log('else');
+                return {
+                    success: false,
+                    message: 'Error'
+                };
+            }
+        }
+
+        const result = testFunction();
+        console.log('Result:', result);
+    </script>
+</body>
+</html>
